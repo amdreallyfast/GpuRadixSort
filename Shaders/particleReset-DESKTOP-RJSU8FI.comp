@@ -1,0 +1,317 @@
+#version 440
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// unlike the ParticleBuffer and FaceBuffer, atomic counter buffers seem to need a declaration 
+// like this and cannot be bound dynamically as in ParticleSsbo and PolygonSsbo, so declare 
+// the atomic counters up front to make it easier to keep the numbers straight.
+// Note: Discovered by experience and through this: https://www.opengl.org/wiki/Atomic_Counter.
+// Also Note: MUST use a unique binding unless you want these atomic counters to be identical to 
+// the atomic counters in another shader.  Discovered by experience.  Even though this is a 
+// different shader than the "particle update" compute shader, the layout binding holds.
+layout (binding = 1, offset = 0) uniform atomic_uint acResetParticleCounter;
+layout (binding = 1, offset = 4) uniform atomic_uint acRandSeed;
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Stores info about a single particle.  Must match the version on the CPU side.
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+struct Particle
+{
+    vec4 _pos;
+    vec4 _vel;
+    vec4 _netForceThisFrame;
+    int _collisionCountThisFrame;
+    float _mass;
+    float _radiusOfInfluence;
+    unsigned int _indexOfNodeThatItIsOccupying;
+    int _isActive;
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    OpenGL rendering uses the same "Polygon Face" buffer, and OpenGL rendering takes vertices 
+    one at a time.  I originally tried making each face into a single structure with two 
+    positions and one normal, but then the rendering treated the whole thing like a single 
+    vertex.  Whoops.  So I have to specify each vertex individually for the sake of rendering 
+    and then match that here in the compute shader.
+    
+    Must match the version on the CPU side.
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+struct MyVertex
+{
+    vec4 _pos;
+    vec4 _normal;
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    This is the array of particles that the compute shader will be accessing.  It is set up on 
+    the CPU side in ParticleSsbo::Init(...).
+
+    Note: Instead of the hard-coded binding point as was used in the "render particles 2D basic" 
+    project, the binding point is determined on the CPU side.  Is that necessary in this demo?  
+    No.  Binding points are relevant only to a particular shader and the CPU side needs to, at 
+    least, tell OpenGL that the just-created SSBO should be bound to the same binding point 
+    ("binding = 0" here in the shader means glBindBufferBase(..., 0, ...) in the SSBO setup), 
+    but if the user doesn't want to handle the binding on both the shader side and the CPU side, 
+    then this demo shows how to handle binding entirely on the CPU side.
+    
+    Also Note: Without the binding point specifier, which implicitly assumed std430, then the 
+    layout standard needs to be specified explicitly.  According to this website under heading 
+    "Layout std430, new and better std140", std430 is the ONLY layout specifier available for 
+    SSBOs.  I don't know what it does, but it is necessary.  
+    http://malideveloper.arm.com/resources/sample-code/introduction-compute-shaders-2/
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+uniform uint uMaxParticles;
+layout (std430) buffer ParticleBuffer
+{
+    // Note: According to the documentation for shader storage buffer objects, "there can only 
+    // be one array of variable size per SSBO and it has to be the bottommost in the layout 
+    // definition."  This means that, if I wanted to define anything else in here (I don't since 
+    // it is an array of Particle structures whose size is determined on the CPU side), then I 
+    // would have to declare it before the array.  If I declared it after, then the shader won't 
+    // compile.
+    // See here: https://www.opengl.org/wiki/Shader_Storage_Buffer_Object.
+    Particle AllParticles[];
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    A convenience function whose name indicates its purpose.  Also useful so that I don't have 
+    to type the actual vector name three times.  This isn't quite as accurate as a real square 
+    root, but from what I've read, it is pretty accurate out to a few decimal places, so it's 
+    good enough for simulation work.
+Parameters:
+    v   The vec4 to be normalized.
+Returns:
+    A normalized copy of input v;
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+vec4 QuickNormalize(vec4 v)
+{
+    return inversesqrt(dot(v, v)) * v;
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Helps to generate a random displacement region around a particle's spawn point.  It gives 
+    the illusion that the particles come from a cloud instead of a point.  It's a "looks nice" 
+    feature.
+Parameters:
+    v1              The start of the linear blend.
+    v2              The end of the linear blend.
+    Between0And1    Some fraction of the difference between v1 and v2.
+Returns:
+    A vec4 that is linearly blended according to Between0and1.
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+vec4 LinearMix(vec4 v1, vec4 v2, float Between0And1)
+{
+    return (v1 * (1 - Between0And1)) + (v2 * Between0And1);
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Generate a semi-random number on the range [0,+1] (I think; I don't know if it actually hits 
+    0 or +1).  Found online:
+    http://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
+
+    Like rand() on the CPU side, this is a chaotic hash function whose output is only as random 
+    as the input.  Calling it multiple times with the same input will always generate the same 
+    output.  But unlike rand(), this function does not have access to OS-level calls to the 
+    CPU's clock counter, nor is there access to any of the GPU's clock counters, so inputs must 
+    be provided by the user.
+
+    I changed the source function to use atomic counter instead of taking a vec2 so that I 
+    wouldn't have to rely on initial values being provided by the CPU side of the program.  This 
+    way I can initialize the particle buffer with default values and get rid of some code.
+
+    Note: This random hash has its limits.  When provided two sequential integers from the 
+    atomic counter, there is a little bit of banding in the bar emitters, but the point emitters 
+    look good enough, so I can live with this.  I don't need encryption-level randomness for a 
+    particle simulation.
+Parameters: None
+Returns:
+    A semi-random float.
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+float RandomOnRange0To1()
+{
+    // increment the rand seed counter, but NOT the particle counter (that is for main())
+    // Note: Using two atomic counters because it was discovered by experience that passing in 
+    // two sequential values wasn't random enough for personal taste.  There was some banding 
+    // that was observed in the bar emitters, and using two counters that are likely to have 
+    // very different values seems to have fixed the problem.
+    // Also Note: There is still some banding.  I don't know how to get rid of it.
+    float val1 = atomicCounterIncrement(acRandSeed);
+    float val2 = atomicCounter(acResetParticleCounter);
+    return fract(sin(dot(vec2(val1, val2) ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    A convenience function that generates a single number on the range [-1,+1] (again, I don't 
+    know if it actually hits -1 or +1 exactly).  It is used to generate random X and Y velocity 
+    vectors for newly-eminating particles.  
+Parameters:    None
+Returns:
+    A semi-random float on the range [-1,+1].
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+float RandomOnRangeNeg1ToPos1()
+{
+    if (RandomOnRange0To1() < 0.5)
+    {
+        return -1.0 * RandomOnRange0To1();
+    }
+    else
+    {
+        return +1.0 * RandomOnRange0To1();
+    }
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Similar to the MinMaxVelocity::GetNew() on the CPU side, this function calculates a random 
+    velocity between a min and max value.  The min value is provided by a uniform, but the max 
+    is instead inferred by the "delta particle velocity" uniform since all that is needed for 
+    the calculation is a variance on the delta.
+
+    Used for both point and bar emitters.
+Parameters:    None
+Returns:
+    A semi-random float on the range uMinParticleVelocity + (rand0To1 * uDeltaParticleVelocity).
+Creator:    John Cox (10-10-2016)
+------------------------------------------------------------------------------------------------*/
+uniform float uMinParticleVelocity;
+uniform float uDeltaParticleVelocity;
+float NewVelocityBetweenMinAndMax()
+{
+    float velocityVariation = RandomOnRange0To1() * uDeltaParticleVelocity;
+    float velocityMagnitude = uMinParticleVelocity + velocityVariation;
+
+    return velocityMagnitude;
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Resets a particle to a point emitter's position plus a variation on the position that gives
+    the particles the appearance of eminating from a cloud (looks nicer than eminating from a
+    point).
+Parameters:
+    p   A Particle instance.  
+Returns:
+    A Particle object with a random 2D velocity and a position that is the point emitter's 
+    position plus a small variation on that position to give the appearance of spawning in a 
+    particle cloud.
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+uniform vec4 uPointEmitterCenter;
+Particle PointEmitterResetPos(Particle p)
+{
+    Particle pCopy = p;
+    
+    vec4 basePosition = uPointEmitterCenter;
+    float posX = RandomOnRangeNeg1ToPos1();
+    float posY = RandomOnRangeNeg1ToPos1();
+
+    // need to normalize the outer limit (), but to do that we can't have a 1 in the w position 
+    // or else the X and Y's normalization get's messed up
+    // Note: Window space is on the range [-1,+1] on X and Y, hence the normalizing.
+    vec4 outerPosLimit = 0.1 * QuickNormalize(vec4(posX, posY, 0.0, 0.0));
+    vec4 posVariance = LinearMix(uPointEmitterCenter, outerPosLimit, RandomOnRange0To1());
+    pCopy._pos = basePosition + posVariance;
+    
+    // velocity
+    float velX = RandomOnRangeNeg1ToPos1();
+    float velY = RandomOnRangeNeg1ToPos1();
+    vec4 randomVelocityVector = QuickNormalize(vec4(velX, velY, 0.0, 0.0));
+    pCopy._vel = randomVelocityVector * NewVelocityBetweenMinAndMax();
+    
+    return pCopy;
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Like PointEmitterResetPos(...), but for a bar emitter.
+Parameters:
+    p   A Particle instance.  
+Returns:
+    A Particle object with a 2D velocity on the range min + (rand * delta) and a position 
+    randomly placed between the bar emitter's start and end points.
+Creator:    John Cox (10-10-2016)
+------------------------------------------------------------------------------------------------*/
+uniform vec4 uBarEmitterP1;
+uniform vec4 uBarEmitterP2;
+uniform vec4 uBarEmitterEmitDir;
+Particle BarEmitterResetPos(Particle p)
+{
+    Particle pCopy = p;
+
+    // position
+    vec4 start = uBarEmitterP1;
+    vec4 end = uBarEmitterP2;
+    vec4 startToEnd = end - start;
+    pCopy._pos = start + (RandomOnRange0To1() * startToEnd);
+
+    // velocity
+    vec4 velocityDir = QuickNormalize(uBarEmitterEmitDir);
+    pCopy._vel = velocityDir * NewVelocityBetweenMinAndMax();
+
+    return pCopy;
+}
+
+uniform uint uUsePointEmitter;
+
+// this value is used to prevent uMaxParticles particles from being emitted all at once
+// Note: This is used when the particles are spread out on multiple emitters.
+uniform uint uMaxParticleEmitCount;
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    The compute shader's startup function.
+Parameters: None
+Returns:    None
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+void main()
+{
+    uint index = gl_GlobalInvocationID.x;
+    if (index < uMaxParticles)
+    {
+        Particle p = AllParticles[index];
+
+        if (p._isActive == 0)
+        {
+            // only reactivate the particle if there is enough left in the particle limit for 
+            // this update
+            if (atomicCounterIncrement(acResetParticleCounter) < uMaxParticleEmitCount)
+            {
+                if (uUsePointEmitter == 1)
+                {
+                    // use the point emitter with whatever point was uploaded
+                    p = PointEmitterResetPos(p);
+                }
+                else
+                {
+                    // use bar emitter
+                    p = BarEmitterResetPos(p);
+                }
+                
+                p._isActive = 1;
+            }
+
+            // copy the updated one back into the array
+            AllParticles[index] = p;
+        }
+        else
+        {
+            // particle active, so don't reset it
+        }
+    }
+}
+

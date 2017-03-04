@@ -1,0 +1,148 @@
+#version 440
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Contains the 30bit Morton Code of a single particle's 3D position and the index of the 
+    particle that it originally referred to.  There is one of these for each particle.   
+
+    Note: I could have put the Morton Code within each particle, but I didn't want to haul 
+    sorting information around with each particle, so I made these intermediate structures.  The 
+    sorting will move them around, so they need to store the index of the particle for which 
+    they were originally created.
+Creator:    John Cox, 2/2017
+------------------------------------------------------------------------------------------------*/
+struct ParticleMortonCode
+{
+    uint _particleIndex;
+    uint _mortonCode;
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Same size as ParticleBuffer.
+Creator:    John Cox, 2/2017
+------------------------------------------------------------------------------------------------*/
+uniform uint uMaxParticles;
+layout (std430) buffer MortonCodeBuffer
+{
+    ParticleMortonCode MortonCodesByParticle[];
+};
+
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Radix sort requires the construction of "prefix sums".  That is, the sum of all like values 
+    that came before.  This is used in the next phase, the "scan and sort", to keep like values 
+    relative to each other.  
+    
+    And by "like values" I mean that, if I'm working on a number ending in 10, then a 
+    "like number" would be one that ends in 10.  And if I'm working on a number whose 4th bit 
+    pair (counting from bit 0 => bits 6 and 7) is 11, then a "like number" would be one whose 
+    4th bit pair is also 11.
+
+    See the ReadMeRadixSort.txt for more detail.
+
+    I am combining multiple loops for prefix sum calculations into a single buffer.  That is, 
+    rather than this:
+    - 4 bit pair sums per work group for bit pair 0 (bits 0 and 1)
+    - "scan and sort"
+    - 4 bit pair sums per work group for bit pair 1 (bits 2 and 3)
+    - "scan and sort"
+    - ...
+    - 4 bit pair sums per work group for bit pair 14 (bits 28 and 29)
+    - "scan and sort"
+
+    Do this instead:
+    - 4 bit pair sums per work group for all 15 bit pairs (bits 0 through 29)
+    - "scan and sort" once
+Creator:    John Cox, 2/2017
+------------------------------------------------------------------------------------------------*/
+uniform uint uNumWorkGroups
+layout (std430) buffer PrefixSumsBuffer
+{
+    // 30bit Morton Code => 15 bit pairs, 4 possible values per bit pair (0-3)
+    uint AllPrefixSums[][15][4];
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Increment the prefix sum for the given number at the current bit pair in the thread's 
+    current index.
+
+    Ex: 0x001101010011
+    bitPair = 0, bit pair is 11 => increment AllPrefixSums[workGroup][0][3] + 1
+    bitPair = 1, bit pair is 00 => increment AllPrefixSums[workGroup][1][0] + 1
+    bitPair = 2, bit pair is 01 => increment AllPrefixSums[workGroup][2][1] + 1
+    bitPair = 3, bit pair is 01 => increment AllPrefixSums[workGroup][3][1] + 1
+    bitPair = 4, bit pair is 11 => increment AllPrefixSums[workGroup][4][3] + 1
+    bitPair = 5, bit pair is 00 => increment AllPrefixSums[workGroup][5][0] + 1
+Parameters: 
+    number          The 30bit Morton Code under consideration
+    bitPair   0-14 (bits 0 and 1, bits 1 and 2, bits 3 and 4, ..., bits 28 and 29)
+    workGroupIndex  The work group of the current thread
+Returns:    None
+Creator:    John Cox, 2/2017
+------------------------------------------------------------------------------------------------*/
+void AddPrefixSum(uint number, uint bitPair, uint workGroupIndex)
+{
+    uint shiftedNumber = number >> (bitPair * 2);
+
+    // 00 -> bitPairIndex = 0
+    // 01 -> bitPairIndex = 1
+    // 10 -> bitPairIndex = 2
+    // 11 -> bitPairIndex = 3
+    uint bitPairIndex = (shiftedNumber & 3);
+
+    // there may be other threads in this group all writing to this value at the same time, so 
+    // use an atomic addition
+    atomicAdd(AllPrefixSums[workGroupIndex][bitPair][bitpairIndex], 1);
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    The compute shader's startup function.
+Parameters: None
+Returns:    None
+Creator:    John Cox, 2/2017
+------------------------------------------------------------------------------------------------*/
+void main()
+{
+    uint index = gl_GlobalInvocationID.x;
+    if (index >= uMaxParticles)
+    {
+        // no particle for this thread
+        return;
+    }
+
+    // don't bother checking the work group number
+    // Note: Unlike the threads per particle, in which there are enough work groups to do the 
+    // job, each work group has 256 (at the moment 2-25-2017) threads, and therefore there will 
+    // probably be an excess number of threads in the last work group, there will only ever be 
+    // just enough work groups.  If the user (me) didn't allocate as many work groups as there 
+    // actually were, then my calculations were wrong and the program should blow up in my face.
+    uint workGroupIndex = gl_WorkGroupID.x;
+
+    uint numberToAnalyze = MortonCodeBuffer[index]._mortonCode;
+
+    // 30bit code, analyzing 2bits at a time, make that 15 bit pairs (0 - 14)
+    AddPrefixSum(numberToAnalyze, 0, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 1, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 2, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 3, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 4, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 5, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 6, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 7, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 8, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 9, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 10, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 11, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 12, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 13, workGroupIndex);
+    AddPrefixSum(numberToAnalyze, 14, workGroupIndex);
+
+    // that is all for this shader
+}

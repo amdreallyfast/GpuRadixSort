@@ -1,0 +1,2 @@
+This directory would contain all the object files created when building the library, but I cleaned 
+it out when making this barebones code demo.

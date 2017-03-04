@@ -1,0 +1,136 @@
+#version 440
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// unlike the ParticleBuffer and FaceBuffer, atomic counter buffers seem to need a declaration 
+// like this and cannot be bound dynamically as in ParticleSsbo and PolygonSsbo, so declare 
+// the atomic counters up front to make it easier to keep the numbers straight.
+// Note: Discovered by experience and through this: https://www.opengl.org/wiki/Atomic_Counter.
+layout (binding = 0, offset = 0) uniform atomic_uint acActiveParticleCounter;
+
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Stores info about a single particle.  Must match the version on the CPU side.
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+struct Particle
+{
+    vec4 _pos;
+    vec4 _vel;
+    vec4 _netForceThisFrame;
+    int _collisionCountThisFrame;
+    float _mass;
+    float _radiusOfInfluence;
+    unsigned int _indexOfNodeThatItIsOccupying;
+    int _isActive;
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    This is the array of particles that the compute shader will be accessing.  It is set up on 
+    the CPU side in ParticleSsbo::Init(...).
+
+    Note: Instead of the hard-coded binding point as was used in the "render particles 2D basic" 
+    project, the binding point is determined on the CPU side.  Is that necessary in this demo?  
+    No.  Binding points are relevant only to a particular shader and the CPU side needs to, at 
+    least, tell OpenGL that the just-created SSBO should be bound to the same binding point 
+    ("binding = 0" here in the shader means glBindBufferBase(..., 0, ...) in the SSBO setup), 
+    but if the user doesn't want to handle the binding on both the shader side and the CPU side, 
+    then this demo shows how to handle binding entirely on the CPU side.
+    
+    Also Note: Without the binding point specifier, which implicitly assumed std430, then the 
+    layout standard needs to be specified explicitly.  According to this website under heading 
+    "Layout std430, new and better std140", std430 is the ONLY layout specifier available for 
+    SSBOs.  I don't know what it does, but it is necessary.  
+    http://malideveloper.arm.com/resources/sample-code/introduction-compute-shaders-2/
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+uniform uint uMaxParticles;
+layout (std430) buffer ParticleBuffer
+{
+    // Note: According to the documentation for shader storage buffer objects, "there can only 
+    // be one array of variable size per SSBO and it has to be the bottommost in the layout 
+    // definition."  This means that, if I wanted to define anything else in here (I don't since 
+    // it is an array of Particle structures whose size is determined on the CPU side), then I 
+    // would have to declare it before the array.  If I declared it after, then the shader won't 
+    // compile.
+    // See here: https://www.opengl.org/wiki/Shader_Storage_Buffer_Object.
+    Particle AllParticles[];
+};
+
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Checks if the provided particle has gone outside the circle that defines where particles are 
+    "active".
+Parameters:
+    particleIndex   An index into the AllParticles array.
+Returns:
+    True if the particle is out of bounds and should be reset, otherwise false.
+Creator:    John Cox (1-7-2016)
+------------------------------------------------------------------------------------------------*/
+uniform vec4 uParticleRegionCenter;
+uniform float uParticleRegionRadiusSqr;
+bool ParticleOutOfBoundsPolygon(uint particleIndex)
+{
+    vec4 regionCenterToParticle = AllParticles[particleIndex]._pos - uParticleRegionCenter;
+
+    // partial pythagorean theorem
+    float x = regionCenterToParticle.x;
+    float y = regionCenterToParticle.y;
+    float distToParticleSqr = (x * x) + (y * y);
+    if (distToParticleSqr > uParticleRegionRadiusSqr)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+uniform float uDeltaTimeSec;
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    The compute shader's startup function.
+Parameters: None
+Returns:    None
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+void main()
+{
+    uint index = gl_GlobalInvocationID.x;
+    if (index < uMaxParticles)
+    {
+        Particle p = AllParticles[index];
+
+        // only update active particles 
+        if (p._isActive == 0)
+        {
+            return;
+        }
+
+        // when the compute shader is summoned to update active particles, this counter will 
+        // give a count of how many active particles exist
+        atomicCounterIncrement(acActiveParticleCounter);
+
+        vec4 acceleration = p._netForceThisFrame / p._mass;
+        p._vel += (acceleration * uDeltaTimeSec);
+        p._pos += (p._vel * uDeltaTimeSec);
+
+        // if it went out of bounds, reset it
+        if (ParticleOutOfBoundsPolygon(index))
+        {
+            p._isActive = 0;
+        }                
+
+        // regardless of whether it went out of bounds or not, reset the net force and collision 
+        // count for this frame
+        p._netForceThisFrame = vec4(0,0,0,0);
+        p._collisionCountThisFrame = 0;
+
+        // copy the updated one back into the array
+        AllParticles[index] = p;
+    }
+}
+

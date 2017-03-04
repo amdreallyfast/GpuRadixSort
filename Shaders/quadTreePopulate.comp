@@ -1,0 +1,170 @@
+#version 440
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+layout (binding = 3, offset = 0) uniform atomic_uint acParticleCounterPerNode[16384];
+
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Contains all info necessary for a single node of the quad tree.  It is a dumb container 
+    meant for use only by ParticleQuadTree.
+Creator:    John Cox (12-17-2016)
+------------------------------------------------------------------------------------------------*/
+const uint MAX_PARTICLES_PER_NODE = 100;
+struct ParticleQuadTreeNode
+{
+    // this array size MUST match the value specified on the CPU side
+    uint _indicesForContainedParticles[MAX_PARTICLES_PER_NODE];
+    uint _numCurrentParticles;
+
+    int _inUse;
+    int _isSubdivided;
+    uint _childNodeIndexTopLeft;
+    uint _childNodeIndexTopRight;
+    uint _childNodeIndexBottomRight;
+    uint _childNodeIndexBottomLeft;
+
+    // left and right edges implicitly X, top and bottom implicitly Y
+    float _leftEdge;
+    float _topEdge;
+    float _rightEdge;
+    float _bottomEdge;
+
+    uint _neighborIndexLeft;
+    uint _neighborIndexTopLeft;
+    uint _neighborIndexTop;
+    uint _neighborIndexTopRight;
+    uint _neighborIndexRight;
+    uint _neighborIndexBottomRight;
+    uint _neighborIndexBottom;
+    uint _neighborIndexBottomLeft;
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Stores info about a single particle.  Must match the version on the CPU side.
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+struct Particle
+{
+    vec4 _pos;
+    vec4 _vel;
+    vec4 _netForceThisFrame;
+    int _collisionCountThisFrame;
+    float _mass;
+    float _radiusOfInfluence;
+    unsigned int _indexOfNodeThatItIsOccupying;
+    int _isActive;
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    The SSBO that contains all the ParticleQuadTreeNodes that this simulation is running.  
+    Rather self-explanatory.
+Creator:    John Cox (1-10-2017)
+------------------------------------------------------------------------------------------------*/
+layout (std430) buffer QuadTreeNodeBuffer
+{
+    ParticleQuadTreeNode AllNodes[];
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    The SSBO that contains all the particles that this simulartion is running.  Rather 
+    self-explanatory.
+    
+    Binding points are relevant only to a particular shader (that is, not to the OpenGL context 
+    as a whole) and are set in the SSBO's ConfigureCompute(...) function.
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+uniform uint uMaxParticles;
+layout (std430) buffer ParticleBuffer
+{
+    Particle AllParticles[];
+};
+
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    The compute shader's startup function.  It governs the addition of particles to the quad 
+    tree.  It calculates which of the default tree nodes the particle is in, and then adds the 
+    particle to it.  AddParticleToNode(...) will handle subdivision and addition of particles to 
+    child nodes.
+Parameters: None
+Returns:    None
+Creator:    John Cox (1-12-2017) (adapted from CPU version, 12-17-2016)
+------------------------------------------------------------------------------------------------*/
+uniform float uParticleRegionRadius;
+uniform vec4 uParticleRegionCenter;
+uniform uint uNumColumnsInTreeInitial;   // must be int (calculations need  it)
+uniform float uInverseXIncrementPerColumn;
+uniform float uInverseYIncrementPerRow;
+void main()
+{
+    uint particleIndex = gl_GlobalInvocationID.x;
+    if (particleIndex >= uMaxParticles)
+    {
+        return;
+    }
+
+    Particle p = AllParticles[particleIndex];
+
+    if (p._isActive == 0)
+    {
+        return;
+    }
+
+
+    // I can't think of an intuitive explanation for why the following math works, but it does (I worked it out by hand, got it wrong, experimented, and got it right)
+    // Note: Row bounds are on the Y axis, column bounds are on the X axis.  I always get them mixed up because a row is horizontal (like X) and a column is vertical (like Y).
+    // Also Node:
+    //  col index   = (int)((particle.pos.x - quadTreeLeftEdge) / xIncrementPerColumn);
+    //  row index   = (int)((quadTreeTopEdge - particle.pos.y) / yIncrementPerRow);
+    // 
+    //  Let c = particle region center
+    //  Let r = particle region radius
+    //  Let p = particle
+    //  Then:
+    //  col index = (int)((p.pos.x - (c.x - r)) / xIncrementPerColumn);
+    //  row index = (int)(((c.y + r) - p.pos.y) / yIncrementPerRow);
+    //
+    // Also Also Note: The integer rounding should NOT be rounded to the nearest integer.  Array 
+    // indices start at 0.  Any value between 0 and 1 is considered to be in the 0th index.
+
+    // column
+    float leftEdge = uParticleRegionCenter.x - uParticleRegionRadius;
+    float xDiff = p._pos.x - leftEdge;
+    float colFloat = xDiff * uInverseXIncrementPerColumn;
+    uint colInteger = uint(floor(colFloat));
+
+    // row
+    float topEdge = uParticleRegionCenter.y + uParticleRegionRadius;
+    float yDiff = topEdge - p._pos.y;
+    float rowFloat = yDiff * uInverseYIncrementPerRow;
+    uint rowInteger = uint(floor(rowFloat));
+
+    // same index calculation as the tree initialization 
+    uint nodeIndex = (rowInteger * uNumColumnsInTreeInitial) + colInteger;
+
+    // don't bother checking the index
+    // Note: If the index > uMaxNodes, then the calculation went bad.  Let it blow up so that it 
+    // can be noticed and fixed.
+
+    if (AllNodes[nodeIndex]._numCurrentParticles == MAX_PARTICLES_PER_NODE)
+    {
+        // not enough space
+        return;
+    }
+
+    // write directly to the node because someone else might be writing to it at the same time
+    uint newParticleCount = atomicCounterIncrement(acParticleCounterPerNode[nodeIndex]);
+    AllNodes[nodeIndex]._numCurrentParticles = newParticleCount;
+    AllNodes[nodeIndex]._indicesForContainedParticles[newParticleCount] = particleIndex;
+
+    // the shader is unique tp this particle, so it is okay to write to a copy and then write 
+    // the copy back into the buffer
+    p._indexOfNodeThatItIsOccupying = nodeIndex;
+    AllParticles[particleIndex] = p;
+
+}
+

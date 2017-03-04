@@ -1,0 +1,178 @@
+#version 440
+
+layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Stores info about a single particle.  Must match the version on the CPU side.
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+struct Particle
+{
+    vec4 _pos;
+    vec4 _vel;
+    vec4 _netForceThisFrame;
+    int _collisionCountThisFrame;
+    float _mass;
+    float _radiusOfInfluence;
+    unsigned int _indexOfNodeThatItIsOccupying;
+    int _isActive;
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Contains the 30bit Morton Code of a single particle's 3D position and the mortonCodeIndex of the 
+    particle that it originally referred to.  There is one of these for each particle.   
+
+    Note: I could have put the Morton Code within each particle, but I didn't want to haul 
+    sorting information around with each particle, so I made these intermediate structures.  The 
+    sorting will move them around, so they need to store the mortonCodeIndex of the particle for which 
+    they were originally created.
+Creator:    John Cox, 2/2017
+------------------------------------------------------------------------------------------------*/
+struct ParticleMortonCode
+{
+    uint _particleIndex;
+    uint _mortonCode;
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    The SSBO that contains all the particles that this simulartion is running.  Rather 
+    self-explanatory.
+    
+    Binding points are relevant only to a particular shader (that is, not to the OpenGL context 
+    as a whole) and are set in the SSBO's ConfigureCompute(...) function.
+Creator:    John Cox (9-25-2016)
+------------------------------------------------------------------------------------------------*/
+uniform uint uMaxParticles;
+layout (std430) buffer ParticleBuffer
+{
+    Particle AllParticles[];
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    The particle copy SSBO.  Particles are being sorted in parallel, so swapping 
+    ("A = dest; dest = src; src = dest;") is out.  The particles must be copied as is, their 
+    Morton Codes will be sorted, then the particles will be placed back into the particle buffer 
+    in a sorted fashion.
+
+    Note: This is the same size as ParticleBuffer, so no additional "max size" variable.
+Creator:    John Cox, 2/20177
+------------------------------------------------------------------------------------------------*/
+layout (std430) buffer ParticleCopyBuffer
+{
+    Particle CopyAllParticles[];
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Same size as ParticleBuffer.
+Creator:    John Cox, 2/2017
+------------------------------------------------------------------------------------------------*/
+layout (std430) buffer MortonCodeBuffer
+{
+    ParticleMortonCode MortonCodesByParticle[];
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    See Description in MortonCodePrefixSums.comp for more detail.
+Creator:    John Cox, 2/2017
+------------------------------------------------------------------------------------------------*/
+uniform uint uNumWorkGroups
+layout (std430) buffer PrefixSumsBuffer
+{
+    // 30bit Morton Code => 15 bit pairs, 4 possible values per bit pair (0-3)
+    uint AllPrefixSums[][15][4];
+}
+
+// TODO: header
+// Note: Within a work group, all threads will be will be accessing the same 2D array for all 15 bit pair sums.  This sould keep data divergeance down.
+uint ScanForLikeItemsWithinWorkGroup(uint mortonCodeGlobalIndex, uint workGroupIndex)
+{
+    // Ex: If you end in 11, then all items that appeared before you within the indices that 
+    // this work group is dealing with that also end in 11 will increase this counter by 1.
+    // Ex: If your 4th bit pair is 01, then all items that appeared before in this work group 
+    // that also have a 4th bit pair of 01 will increase this counter by 1.
+    uint offsetFromLikeNumbersInGroup = 0;
+
+    uint myMortonCode = MortonCodesByParticle[mortonCodeGlobalIndex]._mortonCode;
+
+    // hard-coded 256 because the computer shader layout (see top of file) needs hard-coded 
+    // numbers, so in the absence of a single variable, keep hard-coding this number 
+    // Note: The work group size is a hard-coded 256 across the program, so at least it's 
+    // noticeable and easily found.
+    uint startingIndex = workGroupIndex * 256;
+
+    // for all codes that appeared in this work group before you...
+    uint bitPairIndex = 0;
+    for (uint compareIndex = startingIndex; compareIndex < mortonCodeGlobalIndex; compareIndex++)
+    {
+        uint otherMortonCode = MortonCodesByParticle[mortonCodeGlobalIndex]._mortonCode;
+
+        for (uint bitPairCounter = 0; bitPairCounter < 15; bitPairCounter++)
+        {
+            uint me = ((myMortonCode >> (bitPairCounter * 2)) & 3);
+            uint other = ((otherMortonCode >> (bitPairCounter * 2)) & 3);
+
+            // replace a branching "if" statement with the fact that bool false = 0, true = 1
+            uint isLikeNumber = uint(me == other);
+
+            uint incrementValue = isLikeNumber * AllPrefixSums[workGroupIndex][bitPairCounter][me];
+
+            // unique for this number, so no need for an atomic counter
+            offsetFromLikeNumbersInGroup += incrementValue;
+        }
+    }
+}
+
+// TODO: header
+uint SumAllLikeItemsThatCameBefore(uint mortonCodeGlobalIndex, uint thisWorkGroupIndex)
+{
+    uint offsetFromPriorLikeNumbers = 0;
+    uint myMortonCode = MortonCodesByParticle[mortonCodeGlobalIndex]._mortonCode;
+
+    for (uint workGroupCounter = 0; workGroupCounter < thisWorkGroupIndex; workGroupCounter++)
+    {
+        // this counter goes 0 - 14
+        for (uint bitPairCounter = 0; bitPairCounter < 15; bitPairCounter++)
+        {
+            // this mortonCodeIndex is 0-3
+            uint bitPairIndex = ((myMortonCode >> (bitPairCounter * 2)) & 3);
+            offsetFromPriorLikeNumbers += AllPrefixSums[workGroupCounter][bitPairCounter][bitPairIndex];
+        }
+    }
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    The compute shader's startup function.
+Parameters: None
+Returns:    None
+Creator:    John Cox, 2/2017
+------------------------------------------------------------------------------------------------*/
+void main()
+{
+    uint mortonCodeIndex = gl_GlobalInvocationID.x;
+    if (mortonCodeIndex >= uMaxParticles)
+    {
+        // no particle for this thread
+        return;
+    }
+
+    uint workGroupIndex = gl_WorkGroupID.x;
+
+    // figr=ure out where the particle belongs
+    uint finalParticleIndex = 0;
+    finalParticleIndex += SumAllLikeItemsThatCameBefore(mortonCodeIndex, workGroupIndex);
+    finalParticleIndex += ScanForLikeItemsWithinWorkGroup(mortonCodeIndex, workGroupIndex);
+
+    // and copy the particle there
+    uint currentParticleIndex = MortonCodesByParticle[mortonCodeIndex]._particleIndex;
+    AllParticles[finalParticleIndex] = CopyAllParticles[currentParticleIndex];
+
+    // sorting finished
+}

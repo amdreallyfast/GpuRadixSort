@@ -1,0 +1,219 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{612CB533-6A7D-4936-B6E9-9646D44C868D}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>GpuRadixSort
+    </RootNamespace>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v140</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level4</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir);C:\Users\amdre\OneDrive\Documents\GitHub\GpuRadixSort\ThirdParty\freetype-2.6.1\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <TargetMachine>MachineX86</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Shaders\ShaderStorage.cpp" />
+    <ClCompile Include="Source\ComputeControllers\ParticleReset.cpp" />
+    <ClCompile Include="Source\ComputeControllers\ParticleUpdate.cpp" />
+    <ClCompile Include="Source\ComputeControllers\QuadTreeGenerateGeometry.cpp" />
+    <ClCompile Include="Source\ComputeControllers\QuadTreeParticleCollisions.cpp" />
+    <ClCompile Include="Source\ComputeControllers\QuadTreePopulate.cpp" />
+    <ClCompile Include="Source\ComputeControllers\QuadTreeReset.cpp" />
+    <ClCompile Include="Source\MinMaxVelocity.cpp" />
+    <ClCompile Include="Source\OpenGlErrorHandling.cpp" />
+    <ClCompile Include="Source\Particles\ParticleEmitterBar.cpp" />
+    <ClCompile Include="Source\Particles\ParticleEmitterPoint.cpp" />
+    <ClCompile Include="Source\Particles\ParticleQuadTree.cpp" />
+    <ClCompile Include="Source\RandomToast.cpp" />
+    <ClCompile Include="Source\RenderFrameRate\FreeTypeAtlas.cpp" />
+    <ClCompile Include="Source\RenderFrameRate\FreeTypeEncapsulated.cpp" />
+    <ClCompile Include="Source\RenderFrameRate\Stopwatch.cpp" />
+    <ClCompile Include="Source\SSBOs\ParticleSsbo.cpp" />
+    <ClCompile Include="Source\SSBOs\PolygonSsbo.cpp" />
+    <ClCompile Include="Source\SSBOs\QuadTreeNodeSsbo.cpp" />
+    <ClCompile Include="Source\SSBOs\SsboBase.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Include\ComputeControllers\ParticleReset.h" />
+    <ClInclude Include="Include\ComputeControllers\ParticleSort.h" />
+    <ClInclude Include="Include\ComputeControllers\ParticleUpdate.h" />
+    <ClInclude Include="Include\ComputeControllers\QuadTreeGenerateGeometry.h" />
+    <ClInclude Include="Include\ComputeControllers\QuadTreeParticleCollisions.h" />
+    <ClInclude Include="Include\ComputeControllers\QuadTreePopulate.h" />
+    <ClInclude Include="Include\ComputeControllers\QuadTreeReset.h" />
+    <ClInclude Include="Include\MinMaxVelocity.h" />
+    <ClInclude Include="Include\MyVertex.h" />
+    <ClInclude Include="Include\OpenGlErrorHandling.h" />
+    <ClInclude Include="Include\Particles\IParticleEmitter.h" />
+    <ClInclude Include="Include\Particles\Particle.h" />
+    <ClInclude Include="Include\Particles\ParticleEmitterBar.h" />
+    <ClInclude Include="Include\Particles\ParticleEmitterPoint.h" />
+    <ClInclude Include="Include\Particles\ParticleQuadTree.h" />
+    <ClInclude Include="Include\Particles\ParticleQuadTreeNode.h" />
+    <ClInclude Include="Include\PolygonFace.h" />
+    <ClInclude Include="Include\RandomToast.h" />
+    <ClInclude Include="Include\RenderFrameRate\FreeTypeAtlas.h" />
+    <ClInclude Include="Include\RenderFrameRate\FreeTypeEncapsulated.h" />
+    <ClInclude Include="Include\RenderFrameRate\Stopwatch.h" />
+    <ClInclude Include="Include\SSBOs\ParticleSsbo.h" />
+    <ClInclude Include="Include\SSBOs\PolygonSsbo.h" />
+    <ClInclude Include="Include\SSBOs\QuadTreeNodeSsbo.h" />
+    <ClInclude Include="Include\SSBOs\SsboBase.h" />
+    <ClInclude Include="Shaders\ShaderStorage.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Shaders\FreeType.frag" />
+    <None Include="Shaders\FreeType.vert" />
+    <None Include="Shaders\Geometry.frag" />
+    <None Include="Shaders\Geometry.vert" />
+    <None Include="Shaders\MortonCodePrefixSums.comp" />
+    <None Include="Shaders\ParticleRender.frag" />
+    <None Include="Shaders\ParticleRender.vert" />
+    <None Include="Shaders\ParticleReset.comp" />
+    <None Include="Shaders\ParticleScanAndSort.comp" />
+    <None Include="Shaders\ParticleSortPrep.comp" />
+    <None Include="Shaders\ParticleUpdate.comp" />
+    <None Include="Shaders\QuadTreeGenerateGeometry.comp" />
+    <None Include="Shaders\QuadTreeParticleCollisions.comp" />
+    <None Include="Shaders\QuadTreePopulate.comp" />
+    <None Include="Shaders\QuadTreeReset.comp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>
