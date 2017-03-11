@@ -8,7 +8,8 @@ layout (local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 // Note: Discovered by experience and through this: https://www.opengl.org/wiki/Atomic_Counter.
 layout (binding = 0, offset = 0) uniform atomic_uint acActiveParticleCounter;
 
-
+#ifndef PARTICLE_STRUCTURE
+#define PARTICLE_STRUCTURE
 /*------------------------------------------------------------------------------------------------
 Description:
     Stores info about a single particle.  Must match the version on the CPU side.
@@ -25,6 +26,13 @@ struct Particle
     unsigned int _indexOfNodeThatItIsOccupying;
     int _isActive;
 };
+#endif // PARTICLE_STRUCTURE
+
+
+// and this is how you share it
+const int doubleWorkGroupSize = 256;
+//shared int[gl_WorkGroupSize.x] gerble = int[gl_WorkGroupSize.x](1);
+shared int[doubleWorkGroupSize] gerble = int[gl_WorkGroupSize.x](1);
 
 /*------------------------------------------------------------------------------------------------
 Description:
@@ -99,6 +107,15 @@ Creator:    John Cox (9-25-2016)
 ------------------------------------------------------------------------------------------------*/
 void main()
 {
+    //gerble[1] = 4;
+    //gerble[1] >>= 1;
+    int x = 16;
+    x >>= 1;
+    if (x != 8)
+    {
+        return;
+    }
+
     uint index = gl_GlobalInvocationID.x;
     if (index < uMaxParticles)
     {

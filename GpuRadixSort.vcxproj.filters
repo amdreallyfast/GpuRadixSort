@@ -139,7 +139,9 @@
     <ClInclude Include="Include\RenderFrameRate\FreeTypeEncapsulated.h">
       <Filter>Include\RenderFrameRate</Filter>
     </ClInclude>
-    <ClInclude Include="Include\ComputeControllers\ParticleSort.h" />
+    <ClInclude Include="Include\ComputeControllers\ParticleSort.h">
+      <Filter>Include\ComputeControllers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
@@ -219,6 +221,11 @@
     <None Include="Shaders\MortonCodePrefixSums.comp">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\ParticleScanAndSort.comp" />
+    <None Include="Shaders\ParticleScanAndSort.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\ParallelPrefixScan.comp">
+      <Filter>Shaders</Filter>
+    </None>
   </ItemGroup>
 </Project>

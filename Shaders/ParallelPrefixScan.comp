@@ -1,0 +1,180 @@
+/*------------------------------------------------------------------------------------------------
+Description:
+    This is a parallel prefix sums algorithm that uses shared memory, a binary tree, and no 
+    atomic counters to build up a prefix sum within a work group.  This is advantageous because 
+    it uses fast shared memory instead of having many threads get in line to use atomic 
+    counters, of which there are a limited number, on global memory.
+
+    Thanks to developer.nvidia.com, GPU Gems 3, Chapter 39. Parallel Prefix Sum (Scan) with CUDA
+    for the algorithm (despite the code golfing variable names and lack of comments, at least 
+    they had pictures that I could eventually work out).
+    http://http.developer.nvidia.com/GPUGems3/gpugems3_ch39.html
+
+    TODO: figure out how the "eliminate bank conflicts" thing works (I had an epiphany when going through the binary tree algorithm by hand, and I think that I can figure it out, but I need more paper)
+Creator:    John Cox, 3/11/2017
+------------------------------------------------------------------------------------------------*/
+
+#version 440
+
+// this algorithm relies on using a power of 2 threads in a binary tree pattern within each work 
+// group, so the number of threads must be a power of 2 
+#define WORK_GROUP_SIZE_X 256;
+
+layout (local_size_x = WORK_GROUP_SIZE_X, local_size_y = 1, local_size_z = 1) in;
+
+// create a shared memory buffer for fast memory operations (better than global), two items per 
+// thread, and initialize to 0
+// Note: By definition of keyword "shared", this is shared amongst all threads in a work group.
+#define SHARED_DATA_SIZE (WORK_GROUP_SIZE_X * 2);
+shared int[SHARED_DATA_SIZE] fastTempArr = int[SHARED_DATA_SIZE](0);
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    This is the data that is being scanned AND that is being altered into a prefix sum 
+
+    Note: Make sure that any unused data is at least set to 0.  This algorithm relies on making 
+    binary trees within each thread group, so the data set size that each work group operates on 
+    must be a power of 2 for it to work properly.  If the last chunk of data in the buffer has 
+    fewer items than the required data set size (work group size * 2), then the threads that are 
+    supposed to be working on the latter part of the array won't run (see the global thread 
+    check at the beginning of main()) and the binary tree, and hence the "prefix sum" algorithm, 
+    will not work properly.  So make this a power of 2.
+Creator:    John Cox, 3/11/2017
+------------------------------------------------------------------------------------------------*/
+uniform uint uMaxDataSize;
+layout (std430) buffer IntBuffer
+//layout (std430, binding = PREFIX_SCAN_INT_BUFFER_BINDING) buffer IntBuffer
+{
+    int allIntData[];
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    This prefix sums algorithm operates within thread groups.  If the total data set is larger 
+    than what a single thread group can handle (work group size * 2), then any other algorithm 
+    that relies on these sums must have more context.  
+
+    This demo is for radix sort, so the scans of each work group are required + the total sums
+    from each work group.
+
+    Note: This buffer implicitly has gl_WorkGroupSize.x items.
+Creator:    John Cox, 3/11/2017
+------------------------------------------------------------------------------------------------*/
+layout (std430) buffer GroupSumsBuffer
+//layout (std430, binding = PREFIX_SCAN_GROUP_SUMS_BUFFER_BINDING) buffer GroupSumsBuffer
+{
+    int perGroupSums[];
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    This is where the magic happens.  Each thread in a work group copies two items from global 
+    memory to work-group-shared memory, waits for all the other threads to catch up, performs 
+    the scan (up the tree and back down), then writes their two result back to global memory.
+Parameters: None
+Returns:    None
+Creator:    John Cox, 3/11/2017
+------------------------------------------------------------------------------------------------*/
+void main()
+{
+    if (gl_GlobalInvocationID.x >= uMaxDataSize)
+    {
+        return;
+    }
+
+    // doubled because the shared data size is doubled, and everything dealing with indices also 
+    // doubles them, so just make a doubled variable up front
+    uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
+    uint doubleGlobalThreadIndex = gl_GlobalInvocationID.x * 2;
+
+    // Copy from global to shared data for a faster algorithm (and easier index calculations)
+    // Note: Two elements per thread.
+    fastTempArr[doubleGroupThreadIndex] = allIntData[doubleGlobalThreadIndex];
+    fastTempArr[doubleGroupThreadIndex + 1] = allIntData[doubleGlobalThreadIndex + 1];
+
+    // called simply "offset" in the GPU Gems article, this is a multiplier that works in 
+    // conjunction with the thread number to calculate which index pairs are being considered on 
+    // each loop by each thread
+    uint indexMultiplierDueToDepth = 0;
+
+    // going up divides pair count in half with each level
+    for (int dataPairs = SHARED_DATA_SIZE >> 1; dataPairs > 0; dataPairs >>= 1)
+    {
+        // wait for other threads in the group to catch up
+        barrier();
+
+        // one pair per thread
+        // Note: Going up the tree will require fewer pair operations.  Local thread ID 0 will 
+        // always be doing something, but higher thread numbers will start sitting out until the
+        // "going down the tree" loop
+        if (gl_LocalInvocationID.x < dataPairs)
+        {
+            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+
+            fastTempArr[greaterIndex] += fastTempArr[lesserIndex];
+        }
+
+        // this is used in the "going down" loop, so do this even if the thread didn't do 
+        // anything on this iteration
+        indexMultiplierDueToDepth *= 2;
+    }
+
+    // only one thread should do these (prevents unnecessary writes)
+    if (doubleGroupThreadIndex == 0)
+    {
+        // write the work group sum to the group sums buffer
+        // Note: After the "going up" loop finishes, the last item in the shared memory array 
+        // has the sum of all items in the entire array.  The following "going down" loop will 
+        // change the data into a prefix-only sums array.  Record the entire sum while it is 
+        // still available.
+        preGroupSums[gl_WorkGroupID.x] = fastTempArr[SHARED_DATA_SIZE - 1];
+        
+        // this is just part of the algorithm
+        // Note: If the total data size does not evenly divide SHARED_DATA_SIZE, thenthe last 
+        // group's fastTempArr won't be entirely full, the threads that deal with the latter 
+        // part of the data will have been cut off at the start of main(), and this step will be 
+        // useless.
+        fastTempArr[SHARED_DATA_SIZE - 1] = 0;
+    }
+
+    // undo the last loop's indexMultiplierDueToDepth
+    // Note: After the last loop, indexMultiplierDueToDepth had been multiplied by 2 as many 
+    // times as dataPairs had been divided by 2, so it is now equivalent to SHARED_DATA_SIZE 
+    // (assuming that it is a power of 2).  Divide by 2 so that it can be used to calculate the 
+    // indices of the first data pair off the root.
+    indexMultiplierDueToDepth >>= 1;
+
+    // going down multiplies pair count in half with each level
+    for (int dataPairs = 1; dataPairs < SHARED_DATA_SIZE); dataPairs *= 2)
+    {
+        // wair for the other threads in the group to catch up
+        barrier();
+
+        // once again, group thread 0 is always working, but the others may need to sit out for 
+        // a few loops
+        if (gl_LocalInvocationID.x < dataPairs)
+        {
+            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+
+            // this is a swap and a sum, so need a temporary value
+            int temp = fastTempArr[lesserIndex];
+            fastTempArr[lesserIndex] = fastTempArr[greaterIndex];
+            fastTempArr[greaterIndex] += temp;
+        }
+
+        // next level down will have twice the number of data pairs, so each index calculation 
+        // needs half the offset due to depth
+        indexMultiplierDueToDepth >>= 1;
+    }
+
+    // write the data back, two elements per thread, but wait for all the group threads to 
+    // finish their loops first
+    barrier();
+    allIntData[doubleGlobalThreadIndex] = fastTempArr[doubleGroupThreadIndex];
+    allIntData[doubleGlobalThreadIndex + 1] = fastTempArr[doubleGroupThreadIndex + 1];
+
+    // done!
+}
+

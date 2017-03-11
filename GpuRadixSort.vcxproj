@@ -202,6 +202,7 @@
     <None Include="Shaders\Geometry.frag" />
     <None Include="Shaders\Geometry.vert" />
     <None Include="Shaders\MortonCodePrefixSums.comp" />
+    <None Include="Shaders\ParallelPrefixScan.comp" />
     <None Include="Shaders\ParticleRender.frag" />
     <None Include="Shaders\ParticleRender.vert" />
     <None Include="Shaders\ParticleReset.comp" />

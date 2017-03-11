@@ -207,6 +207,64 @@ void Init()
     shaderStorageRef.AddShaderFile(computeShaderUpdateKey, shaderFilePath, GL_COMPUTE_SHADER);
     shaderStorageRef.LinkShader(computeShaderUpdateKey);
 
+    //GLint getVal0 = 0;
+    //GLint getVal1 = 0;
+    //GLint getVal2 = 0;
+    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &getVal0);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &getVal1);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &getVal2);
+    //printf("GL_MAX_COMPUTE_WORK_GROUP_COUNT (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+
+    //getVal0 = 0;
+    //getVal1 = 0;
+    //getVal2 = 0;
+    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &getVal0);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &getVal1);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &getVal2);
+    //printf("GL_MAX_COMPUTE_WORK_GROUP_SIZE (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+
+    ////getVal0 = 0;
+    ////getVal1 = 0;
+    ////getVal2 = 0;
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB, 0, &getVal0);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB, 1, &getVal1);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB, 2, &getVal2);
+    ////printf("GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+
+    //getVal0 = 0;
+    //getVal1 = 0;
+    //getVal2 = 0;
+    //glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB, 0, &getVal0);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB, 1, &getVal1);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB, 2, &getVal2);
+    //printf("GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+
+    //getVal0 = 0;
+    //getVal1 = 0;
+    //getVal2 = 0;
+    //glGetIntegeri_v(GL_MAX_COMPUTE_LOCAL_INVOCATIONS, 0, &getVal0);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_LOCAL_INVOCATIONS, 1, &getVal1);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_LOCAL_INVOCATIONS, 2, &getVal2);
+    //printf("GL_MAX_COMPUTE_LOCAL_INVOCATIONS (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+
+    //getVal0 = 0;
+    //getVal1 = 0;
+    //getVal2 = 0;
+    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB, 0, &getVal0);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB, 1, &getVal1);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB, 2, &getVal2);
+    //printf("GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+
+    //getVal0 = 0;
+    //getVal1 = 0;
+    //getVal2 = 0;
+    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB, 0, &getVal0);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB, 1, &getVal1);
+    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB, 2, &getVal2);
+    //printf("GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+
+
+
     std::string computeShaderResetKey = "compute particle reset";
     shaderFilePath = "Shaders/ParticleReset.comp";
     shaderStorageRef.NewShader(computeShaderResetKey);

@@ -8,6 +8,14 @@
 // access to GL_VERTEX_SHADER, GL_FRAGMENT_SHADER, etc.
 #include "ThirdParty/glload/include/glload/gl_4_4.h"
 
+
+
+// TODO: "add files" so that you can make headers
+
+
+
+
+
 /*------------------------------------------------------------------------------------------------
 Description:
     Handles the assembly, storage, and retrieval of different shader programs.  The term 
