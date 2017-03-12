@@ -8,14 +8,6 @@
 // access to GL_VERTEX_SHADER, GL_FRAGMENT_SHADER, etc.
 #include "ThirdParty/glload/include/glload/gl_4_4.h"
 
-
-
-// TODO: "add files" so that you can make headers
-
-
-
-
-
 /*------------------------------------------------------------------------------------------------
 Description:
     Handles the assembly, storage, and retrieval of different shader programs.  The term 
@@ -31,10 +23,10 @@ public:
 
     ~ShaderStorage();
     void NewShader(const std::string &programKey);
-    void DeleteProgram(const std::string &programKey);
-
-    void AddShaderFile(const std::string &programKey, const std::string &filePath,
-        const GLenum shaderType);
+    void AddShaderFile(const std::string &programKey, const std::string &filePath);
+    void DeleteShader(const std::string &programKey);
+    
+    void CompileShader(const std::string &programKey, const GLenum shaderType);
     GLuint LinkShader(const std::string &programKey);
     GLuint GetShaderProgram(const std::string &programKey) const;
     GLint GetUniformLocation(const std::string &programKey,
@@ -57,9 +49,12 @@ private:
     typedef std::map<std::string, std::vector<GLuint>> _BINARY_MAP;
     _BINARY_MAP _shaderBinaries;
 
-
-
-    std::string _computeShaderContents;
-
-
+    // used to piece together shader files before compiling
+    // Note: This item allows me to keep a bunch of separate files for individual structures 
+    // instead of repeating them, and it allows me to use C-style header blocks with #define 
+    // declarations that both the shader and C++ can read, which means that I can declare buffer 
+    // and uniform binding locations with constants instead of having to look them up at program 
+    // start.
+    typedef std::map<std::string, std::string> _COMPOSITE_SHADER_MAP;
+    _COMPOSITE_SHADER_MAP _partialShaderContents;
 };

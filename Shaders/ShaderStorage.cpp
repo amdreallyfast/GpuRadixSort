@@ -64,27 +64,22 @@ ShaderStorage::~ShaderStorage()
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    Creates an empty collection of shader binaries under the provided program name.  No entry is 
-    made in the "compiled programs" collection.  That only happens in the LinkShader(...) method.
-
-    All shader manipulation and access methods require the shader to be created first.  
-    Originally, shaders were added via array notation in AddShaderFile(...) if the program key 
-    didn't already exist, but that opened the possibility for silently swallowed errors caused 
-    by typos in the program key string.  This method was then created as a gateway to make sure 
-    that the program key exists before anything else can be done with it.
+    Creates an empty string under the provided key that is ready to accept file contents from 
+    AddShaderFile(...).  Must be called prior to calling that function for the same program 
+    key.
 
     Prints errors to stderr.
 Parameters: 
     programKey  The name that will be used to refer to this shader for the rest of the program.
                 If it already exists, it prints a message to stderr and immediately returns.
 Returns:    None
-Creator:    John Cox (7-16-2016)
+Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
 void ShaderStorage::NewShader(const std::string &programKey)
 {
-    if (_shaderBinaries.find(programKey) != _shaderBinaries.end())
+    if (_partialShaderContents.find(programKey) != _partialShaderContents.end())
     {
-        fprintf(stderr, "program key '%s' already exists in the binaries collection\n", 
+        fprintf(stderr, "partial shader file already exists for program key '%s'\n",
             programKey.c_str());
     }
     else
@@ -92,54 +87,29 @@ void ShaderStorage::NewShader(const std::string &programKey)
         // the following {} ("initializer list") notation was introduced in C++11 and I didn't 
         // know about it until now, and I also just learned about the ::value_type allowed by 
         // templating, so now my map insertions are much easier :)
-        _shaderBinaries.insert({ programKey, _BINARY_MAP::value_type::second_type() });
+        _partialShaderContents.insert({ programKey, _COMPOSITE_SHADER_MAP::value_type::second_type() });
     }
 }
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    Manual cleanup method.  If not called, everything will be cleaned up properly in the 
-    destructor.
-    
-    Prints errors to stderr.
-Parameters:
-    programKey  Delete the compiled shader program associated with this string.
-Returns:    None
-Creator:    John Cox (7-16-2016)
-------------------------------------------------------------------------------------------------*/
-void ShaderStorage::DeleteProgram(const std::string &programKey)
-{
-    _PROGRAM_MAP::iterator itr = _compiledPrograms.find(programKey);
-    if (itr == _compiledPrograms.end())
-    {
-        fprintf(stderr, "program key '%s' does not exists in the collection of compiled programs\n",
-            programKey.c_str());
-    }
-    else
-    {
-        glDeleteProgram(itr->second);
-        _compiledPrograms.erase(itr);
-    }
-}
-
-/*------------------------------------------------------------------------------------------------
-Description:
-    Reads the specified file and attempts to compile it into the specified shader type.  Stores
-    the binary in a collection of binaries under the specified key.
+    Attempts to add the contents of the specified file to an intermediate string under the 
+    provided program key.  No compilation is performed.  It is up to the user to make sure that 
+    file contents are added in the correct order.  This option allows for piecing together files, 
+    which can cause confusion because shader compiler errors will be spit out with line numbers 
+    for the composite file contents, not for any one particular file.  So be careful.
 
     Prints its own errors to stderr.  The APIENTRY debug function doesn't report shader compile
     errors.
 Parameters:
-    programKey  Must have already been created by NewShader.
+    programKey  Must have already been created by NewShader(...).
     filePath    Can be relative to program or an absolute path.
-    shaderType  GL_VERTEX_SHADER, GL_FRAGMENT_SHADER, etc.
 Returns:    None
-Creator:    John Cox (7-14-2016)
+Creator:    John Cox, 3/11/2107
 ------------------------------------------------------------------------------------------------*/
-void ShaderStorage::AddShaderFile(const std::string &programKey, const std::string &filePath,
-    const GLenum shaderType)
+void ShaderStorage::AddShaderFile(const std::string &programKey, const std::string &filePath)
 {
-    if (_shaderBinaries.find(programKey) == _shaderBinaries.end())
+    if (_partialShaderContents.find(programKey) == _partialShaderContents.end())
     {
         fprintf(stderr, "Could not add shader file '%s'.  No program key '%s'\n", 
             filePath.c_str(), programKey.c_str());
@@ -152,9 +122,98 @@ void ShaderStorage::AddShaderFile(const std::string &programKey, const std::stri
     shaderFile.close();
     std::string fileContents = shaderData.str();
 
-    if (fileContents.length() == 0)
+    if (fileContents.empty())
     {
         fprintf(stderr, "Shader file '%s' is empty\n", filePath.c_str());
+        return;
+    }
+
+    // add a new line just to make sure that there is a clear distinction between any possible 
+    // prior file contents and the current file
+    _partialShaderContents[programKey] += ("\n" + fileContents);
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Deletes shader file contents that are still being added to, compiled shader binaries, and
+    the linked program, if any of them exist.
+
+    This is a manual cleanup method.  If not called, everything will be cleaned up properly in 
+    the destructor.
+    
+    Failure to find something for the program key does not print an error or abort, but finding 
+    and deleting an entry will print a note.
+Parameters:
+    programKey  Delete the compiled shader program associated with this string.
+Returns:    None
+Creator:    John Cox, 3/11/2107
+------------------------------------------------------------------------------------------------*/
+void ShaderStorage::DeleteShader(const std::string &programKey)
+{
+    _COMPOSITE_SHADER_MAP::iterator shaderItr = _partialShaderContents.find(programKey);
+    if (shaderItr != _partialShaderContents.end())
+    {
+        // just a std::string, so no OpenGL function calls necessary
+        _partialShaderContents.erase(shaderItr);
+        fprintf(stdout, "Deleting shader contents for program key '%s'\n", programKey.c_str());
+    }
+
+    _BINARY_MAP::iterator binariesItr = _shaderBinaries.find(programKey);
+    if (binariesItr != _shaderBinaries.end())
+    {
+        for (size_t shaderIndex = 0; shaderIndex < binariesItr->second.size(); shaderIndex++)
+        {
+            GLuint shaderId = binariesItr->second[shaderIndex];
+            glDeleteShader(shaderId);
+        }
+
+        _shaderBinaries.erase(binariesItr);
+        fprintf(stdout, "Deleting compiled binaries for program key '%s'\n", programKey.c_str());
+    }
+
+    _PROGRAM_MAP::iterator programItr = _compiledPrograms.find(programKey);
+    if (programItr != _compiledPrograms.end())
+    {
+        glDeleteProgram(programItr->second);
+        _compiledPrograms.erase(programItr);
+        fprintf(stdout, "Deleting linked program from program key '%s'\n", programKey.c_str());
+    }
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Attempts to read the shader file text under the provided program key and compile it into the 
+    specified shader type.  Stores the resulting binary in a collection of binaries under the 
+    same program key.  The shader file's contents remain and are not deleted until program end 
+    unless manually deleted by calling DeleteShader(...).
+
+    Prints its own errors to stderr.The APIENTRY debug function doesn't report shader compile
+    errors.
+Parameters: None
+    programKey  Must have already been created by NewShader(...).
+    shaderType  GL_VERTEX_SHADER, GL_FRAGMENT_SHADER, etc.
+Returns:    None (there is no linked program yet, so nothing to return)
+Creator:    John Cox, 3/11/2017
+------------------------------------------------------------------------------------------------*/
+void ShaderStorage::CompileShader(const std::string &programKey, const GLenum shaderType)
+{
+    if (_shaderBinaries.find(programKey) != _shaderBinaries.end())
+    {
+        fprintf(stderr, "Already have a compiled program for program key '%s'.  Aborting compile.\n", programKey.c_str());
+        return;
+    }
+
+    _COMPOSITE_SHADER_MAP::const_iterator constItr = _partialShaderContents.find(programKey);
+    if (constItr == _partialShaderContents.end())
+    {
+        fprintf(stderr, "No shader exists for program key '%s'.  Aborting compile.\n", programKey.c_str());
+        return;
+    }
+
+    const std::string &fileContents = constItr->second;
+    if (fileContents.empty())
+    {
+        fprintf(stderr, "Program key %d exists, but the shader is empty.  Aborting compile.\n", programKey.c_str());
         return;
     }
 
@@ -199,7 +258,7 @@ Description:
     Prints its own errors to stderr.  The APIENTRY debug function doesn't report shader link
     errors.
 Parameters:
-    key
+    programKey  Must have already been created by NewShader(...).
 Returns:
     The ID of the resultant program, or 0 if no program was compiled (hopefully 0 is still an
     invalid value in the future.
