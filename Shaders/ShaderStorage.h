@@ -23,10 +23,13 @@ public:
 
     ~ShaderStorage();
     void NewShader(const std::string &programKey);
-    void AddShaderFile(const std::string &programKey, const std::string &filePath);
+    void NewCompositeShader(const std::string &programKey);
     void DeleteShader(const std::string &programKey);
+
+    void AddAndCompileShaderFile(const std::string &programKey, const std::string &filePath, const GLenum shaderType);
+    void AddPartialShaderFile(const std::string &programKey, const std::string &filePath);
+    void CompileCompositeShader(const std::string &programKey, const GLenum shaderType);
     
-    void CompileShader(const std::string &programKey, const GLenum shaderType);
     GLuint LinkShader(const std::string &programKey);
     GLuint GetShaderProgram(const std::string &programKey) const;
     GLint GetUniformLocation(const std::string &programKey,
@@ -39,6 +42,8 @@ private:
     ShaderStorage();
     ShaderStorage(const ShaderStorage&) {}
     ShaderStorage &operator=(const ShaderStorage&) {}
+
+    GLuint CompileShader(const std::string &shaderAsString, const GLenum shaderType);
 
     typedef std::map<std::string, GLuint> _PROGRAM_MAP;
     _PROGRAM_MAP _compiledPrograms;
@@ -55,6 +60,7 @@ private:
     // declarations that both the shader and C++ can read, which means that I can declare buffer 
     // and uniform binding locations with constants instead of having to look them up at program 
     // start.
+    //typedef std::map<std::string, std::map<GLuint, std::string>> _COMPOSITE_SHADER_MAP;
     typedef std::map<std::string, std::string> _COMPOSITE_SHADER_MAP;
     _COMPOSITE_SHADER_MAP _partialShaderContents;
 };

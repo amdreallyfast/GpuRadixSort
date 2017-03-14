@@ -193,206 +193,214 @@ void Init()
 
     // FreeType initialization
     std::string freeTypeShaderKey = "freetype";
-    shaderStorageRef.NewShader(freeTypeShaderKey);
-    shaderStorageRef.AddShaderFile(freeTypeShaderKey, "Shaders/freeType.vert", GL_VERTEX_SHADER);
-    shaderStorageRef.AddShaderFile(freeTypeShaderKey, "Shaders/freeType.frag", GL_FRAGMENT_SHADER);
+    //shaderStorageRef.NewShader(freeTypeShaderKey);
+    //shaderStorageRef.AddAndCompileShaderFile(freeTypeShaderKey, "Shaders/FreeType.vert", GL_VERTEX_SHADER);
+    //shaderStorageRef.AddAndCompileShaderFile(freeTypeShaderKey, "Shaders/FreeType.frag", GL_FRAGMENT_SHADER);
+
+    shaderStorageRef.NewCompositeShader(freeTypeShaderKey);
+    shaderStorageRef.AddPartialShaderFile(freeTypeShaderKey, "Shaders/FreeType.vert");
+    shaderStorageRef.CompileCompositeShader(freeTypeShaderKey, GL_VERTEX_SHADER);
+
+    shaderStorageRef.AddPartialShaderFile(freeTypeShaderKey, "Shaders/FreeType.frag");
+    shaderStorageRef.CompileCompositeShader(freeTypeShaderKey, GL_FRAGMENT_SHADER);
+
     shaderStorageRef.LinkShader(freeTypeShaderKey);
     GLuint freeTypeProgramId = shaderStorageRef.GetShaderProgram(freeTypeShaderKey);
     gTextAtlases.Init("ThirdParty/freetype-2.6.1/FreeSans.ttf", freeTypeProgramId);
     
-    // for the particle compute shader stuff
-    std::string computeShaderUpdateKey = "compute particle update";
-    std::string shaderFilePath = "Shaders/ParticleUpdate.comp";
-    shaderStorageRef.NewShader(computeShaderUpdateKey);
-    shaderStorageRef.AddShaderFile(computeShaderUpdateKey, shaderFilePath, GL_COMPUTE_SHADER);
-    shaderStorageRef.LinkShader(computeShaderUpdateKey);
+    //// for the particle compute shader stuff
+    //std::string computeShaderUpdateKey = "compute particle update";
+    //std::string shaderFilePath = "Shaders/ParticleUpdate.comp";
+    //shaderStorageRef.NewShader(computeShaderUpdateKey);
+    //shaderStorageRef.AddShaderFile(computeShaderUpdateKey, shaderFilePath, GL_COMPUTE_SHADER);
+    //shaderStorageRef.LinkShader(computeShaderUpdateKey);
 
-    //GLint getVal0 = 0;
-    //GLint getVal1 = 0;
-    //GLint getVal2 = 0;
-    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &getVal0);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &getVal1);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &getVal2);
-    //printf("GL_MAX_COMPUTE_WORK_GROUP_COUNT (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
-
-    //getVal0 = 0;
-    //getVal1 = 0;
-    //getVal2 = 0;
-    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &getVal0);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &getVal1);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &getVal2);
-    //printf("GL_MAX_COMPUTE_WORK_GROUP_SIZE (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+    ////GLint getVal0 = 0;
+    ////GLint getVal1 = 0;
+    ////GLint getVal2 = 0;
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &getVal0);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &getVal1);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &getVal2);
+    ////printf("GL_MAX_COMPUTE_WORK_GROUP_COUNT (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
 
     ////getVal0 = 0;
     ////getVal1 = 0;
     ////getVal2 = 0;
-    ////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB, 0, &getVal0);
-    ////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB, 1, &getVal1);
-    ////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB, 2, &getVal2);
-    ////printf("GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &getVal0);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &getVal1);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &getVal2);
+    ////printf("GL_MAX_COMPUTE_WORK_GROUP_SIZE (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
 
-    //getVal0 = 0;
-    //getVal1 = 0;
-    //getVal2 = 0;
-    //glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB, 0, &getVal0);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB, 1, &getVal1);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB, 2, &getVal2);
-    //printf("GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+    //////getVal0 = 0;
+    //////getVal1 = 0;
+    //////getVal2 = 0;
+    //////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB, 0, &getVal0);
+    //////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB, 1, &getVal1);
+    //////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB, 2, &getVal2);
+    //////printf("GL_MAX_COMPUTE_FIXED_GROUP_INVOCATIONS_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
 
-    //getVal0 = 0;
-    //getVal1 = 0;
-    //getVal2 = 0;
-    //glGetIntegeri_v(GL_MAX_COMPUTE_LOCAL_INVOCATIONS, 0, &getVal0);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_LOCAL_INVOCATIONS, 1, &getVal1);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_LOCAL_INVOCATIONS, 2, &getVal2);
-    //printf("GL_MAX_COMPUTE_LOCAL_INVOCATIONS (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+    ////getVal0 = 0;
+    ////getVal1 = 0;
+    ////getVal2 = 0;
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB, 0, &getVal0);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB, 1, &getVal1);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB, 2, &getVal2);
+    ////printf("GL_MAX_COMPUTE_FIXED_GROUP_SIZE_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
 
-    //getVal0 = 0;
-    //getVal1 = 0;
-    //getVal2 = 0;
-    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB, 0, &getVal0);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB, 1, &getVal1);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB, 2, &getVal2);
-    //printf("GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+    ////getVal0 = 0;
+    ////getVal1 = 0;
+    ////getVal2 = 0;
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_LOCAL_INVOCATIONS, 0, &getVal0);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_LOCAL_INVOCATIONS, 1, &getVal1);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_LOCAL_INVOCATIONS, 2, &getVal2);
+    ////printf("GL_MAX_COMPUTE_LOCAL_INVOCATIONS (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
 
-    //getVal0 = 0;
-    //getVal1 = 0;
-    //getVal2 = 0;
-    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB, 0, &getVal0);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB, 1, &getVal1);
-    //glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB, 2, &getVal2);
-    //printf("GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
+    ////getVal0 = 0;
+    ////getVal1 = 0;
+    ////getVal2 = 0;
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB, 0, &getVal0);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB, 1, &getVal1);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB, 2, &getVal2);
+    ////printf("GL_MAX_COMPUTE_VARIABLE_GROUP_INVOCATIONS_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
 
-
-
-    std::string computeShaderResetKey = "compute particle reset";
-    shaderFilePath = "Shaders/ParticleReset.comp";
-    shaderStorageRef.NewShader(computeShaderResetKey);
-    shaderStorageRef.AddShaderFile(computeShaderResetKey, shaderFilePath, GL_COMPUTE_SHADER);
-    shaderStorageRef.LinkShader(computeShaderResetKey);
-
-    std::string computeShaderParticleSortPrepKey = "compute particle sort prep";
-    shaderFilePath = "Shaders/ParticleSortPrep.comp";
-    shaderStorageRef.NewShader(computeShaderParticleSortPrepKey);
-    shaderStorageRef.AddShaderFile(computeShaderParticleSortPrepKey, shaderFilePath, GL_COMPUTE_SHADER);
-    shaderStorageRef.LinkShader(computeShaderParticleSortPrepKey);
-
-    std::string computeShaderQuadTreeResetKey = "compute quad tree reset";
-    shaderFilePath = "Shaders/QuadTreeReset.comp";
-    shaderStorageRef.NewShader(computeShaderQuadTreeResetKey);
-    shaderStorageRef.AddShaderFile(computeShaderQuadTreeResetKey, shaderFilePath, GL_COMPUTE_SHADER);
-    shaderStorageRef.LinkShader(computeShaderQuadTreeResetKey);
-
-    std::string computeQuadTreePopulateKey = "compute quad tree populate";
-    shaderFilePath = "Shaders/QuadTreePopulate.comp";
-    shaderStorageRef.NewShader(computeQuadTreePopulateKey);
-    shaderStorageRef.AddShaderFile(computeQuadTreePopulateKey, shaderFilePath, GL_COMPUTE_SHADER);
-    shaderStorageRef.LinkShader(computeQuadTreePopulateKey);
-
-    std::string computeQuadTreeParticleColliderKey = "compute quad tree collider";
-    shaderFilePath = "Shaders/QuadTreeParticleCollisions.comp";
-    shaderStorageRef.NewShader(computeQuadTreeParticleColliderKey);
-    shaderStorageRef.AddShaderFile(computeQuadTreeParticleColliderKey, shaderFilePath, GL_COMPUTE_SHADER);
-    shaderStorageRef.LinkShader(computeQuadTreeParticleColliderKey);
-
-    std::string computeQuadTreeGenerateGeometryKey = "compute quad tree generate geometry";
-    shaderFilePath = "Shaders/QuadTreeGenerateGeometry.comp";
-    shaderStorageRef.NewShader(computeQuadTreeGenerateGeometryKey);
-    shaderStorageRef.AddShaderFile(computeQuadTreeGenerateGeometryKey, shaderFilePath, GL_COMPUTE_SHADER);
-    shaderStorageRef.LinkShader(computeQuadTreeGenerateGeometryKey);
+    ////getVal0 = 0;
+    ////getVal1 = 0;
+    ////getVal2 = 0;
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB, 0, &getVal0);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB, 1, &getVal1);
+    ////glGetIntegeri_v(GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB, 2, &getVal2);
+    ////printf("GL_MAX_COMPUTE_VARIABLE_GROUP_SIZE_ARB (X,Y,Z): (%d,%d,%d)\n", getVal0, getVal1, getVal2);
 
 
 
-    // a render shader specifically for the particles (particle color may change depending on 
-    // particle state, so it isn't the same as the geometry's render shader)
-    std::string renderParticlesShaderKey = "render particles";
-    shaderStorageRef.NewShader(renderParticlesShaderKey);
-    shaderStorageRef.AddShaderFile(renderParticlesShaderKey, "Shaders/ParticleRender.vert", GL_VERTEX_SHADER);
-    shaderStorageRef.AddShaderFile(renderParticlesShaderKey, "Shaders/ParticleRender.frag", GL_FRAGMENT_SHADER);
-    shaderStorageRef.LinkShader(renderParticlesShaderKey);
+    //std::string computeShaderResetKey = "compute particle reset";
+    //shaderFilePath = "Shaders/ParticleReset.comp";
+    //shaderStorageRef.NewShader(computeShaderResetKey);
+    //shaderStorageRef.AddShaderFile(computeShaderResetKey, shaderFilePath, GL_COMPUTE_SHADER);
+    //shaderStorageRef.LinkShader(computeShaderResetKey);
 
-    // a render shader specifically for the geometry (nothing special; just a transform, color 
-    // white, pass through to frag shader)
-    std::string renderGeometryShaderKey = "render geometry";
-    shaderStorageRef.NewShader(renderGeometryShaderKey);
-    shaderStorageRef.AddShaderFile(renderGeometryShaderKey, "Shaders/Geometry.vert", GL_VERTEX_SHADER);
-    shaderStorageRef.AddShaderFile(renderGeometryShaderKey, "Shaders/Geometry.frag", GL_FRAGMENT_SHADER);
-    shaderStorageRef.LinkShader(renderGeometryShaderKey);
-    GLuint renderGeometryProgramId = shaderStorageRef.GetShaderProgram(renderGeometryShaderKey);
-    //gUnifLocGeometryTransform = shaderStorageRef.GetUniformLocation(renderGeometryShaderKey, "transformMatrixWindowSpace");
+    //std::string computeShaderParticleSortPrepKey = "compute particle sort prep";
+    //shaderFilePath = "Shaders/ParticleSortPrep.comp";
+    //shaderStorageRef.NewShader(computeShaderParticleSortPrepKey);
+    //shaderStorageRef.AddShaderFile(computeShaderParticleSortPrepKey, shaderFilePath, GL_COMPUTE_SHADER);
+    //shaderStorageRef.LinkShader(computeShaderParticleSortPrepKey);
 
-    // set up the particle region 
-    //glm::mat4 windowSpaceTransform = glm::rotate(glm::mat4(), 45.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-    //windowSpaceTransform *= glm::translate(glm::mat4(), glm::vec3(-0.1f, -0.05f, 0.0f));
-    glm::mat4 windowSpaceTransform = glm::rotate(glm::mat4(), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-    windowSpaceTransform *= glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.0f));
+    //std::string computeShaderQuadTreeResetKey = "compute quad tree reset";
+    //shaderFilePath = "Shaders/QuadTreeReset.comp";
+    //shaderStorageRef.NewShader(computeShaderQuadTreeResetKey);
+    //shaderStorageRef.AddShaderFile(computeShaderQuadTreeResetKey, shaderFilePath, GL_COMPUTE_SHADER);
+    //shaderStorageRef.LinkShader(computeShaderQuadTreeResetKey);
 
-    glm::vec4 particleRegionCenter = windowSpaceTransform * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
-    float particleRegionRadius = 0.8f;
+    //std::string computeQuadTreePopulateKey = "compute quad tree populate";
+    //shaderFilePath = "Shaders/QuadTreePopulate.comp";
+    //shaderStorageRef.NewShader(computeQuadTreePopulateKey);
+    //shaderStorageRef.AddShaderFile(computeQuadTreePopulateKey, shaderFilePath, GL_COMPUTE_SHADER);
+    //shaderStorageRef.LinkShader(computeQuadTreePopulateKey);
 
-    std::vector<PolygonFace> particleRegionPolygonFaces;
-    GenerateCircle(particleRegionCenter, particleRegionRadius, &particleRegionPolygonFaces);
-    gpParticleBoundingRegionBuffer = new PolygonSsbo(particleRegionPolygonFaces);
-    gpParticleBoundingRegionBuffer->ConfigureRender(renderGeometryProgramId, GL_LINES);
+    //std::string computeQuadTreeParticleColliderKey = "compute quad tree collider";
+    //shaderFilePath = "Shaders/QuadTreeParticleCollisions.comp";
+    //shaderStorageRef.NewShader(computeQuadTreeParticleColliderKey);
+    //shaderStorageRef.AddShaderFile(computeQuadTreeParticleColliderKey, shaderFilePath, GL_COMPUTE_SHADER);
+    //shaderStorageRef.LinkShader(computeQuadTreeParticleColliderKey);
 
-    // set up the particle SSBO for computing and rendering
-    std::vector<Particle> allParticles(MAX_PARTICLE_COUNT);
-    gpParticleBuffer = new ParticleSsbo(allParticles);
-    gpParticleBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeShaderResetKey), "ParticleBuffer");
-    gpParticleBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeShaderUpdateKey), "ParticleBuffer");
-    gpParticleBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreePopulateKey), "ParticleBuffer");
-    gpParticleBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreeParticleColliderKey), "ParticleBuffer");
-    gpParticleBuffer->ConfigureRender(shaderStorageRef.GetShaderProgram(renderParticlesShaderKey), GL_POINTS);
-
-    // set up the quad tree for computation
-    ParticleQuadTree quadTree(particleRegionCenter, particleRegionRadius);
-    gpQuadTreeBuffer = new QuadTreeNodeSsbo(quadTree._allQuadTreeNodes);
-    gpQuadTreeBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeShaderQuadTreeResetKey), "QuadTreeNodeBuffer");
-    gpQuadTreeBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreePopulateKey), "QuadTreeNodeBuffer");
-    gpQuadTreeBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreeParticleColliderKey), "QuadTreeNodeBuffer");
-    gpQuadTreeBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreeGenerateGeometryKey), "QuadTreeNodeBuffer");
-
-    // set up the quad tree's nodes for rendering
-    unsigned int allPolygonFaces = ParticleQuadTree::_MAX_NODES * 4;
-    std::vector<PolygonFace> quadTreePolygonFaces(allPolygonFaces);
-    gpQuadTreeGeometryBuffer = new PolygonSsbo(quadTreePolygonFaces);
-    gpQuadTreeGeometryBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreeGenerateGeometryKey), "QuadTreeFaceBuffer");
-    gpQuadTreeGeometryBuffer->ConfigureRender(renderGeometryProgramId, GL_LINES);
+    //std::string computeQuadTreeGenerateGeometryKey = "compute quad tree generate geometry";
+    //shaderFilePath = "Shaders/QuadTreeGenerateGeometry.comp";
+    //shaderStorageRef.NewShader(computeQuadTreeGenerateGeometryKey);
+    //shaderStorageRef.AddShaderFile(computeQuadTreeGenerateGeometryKey, shaderFilePath, GL_COMPUTE_SHADER);
+    //shaderStorageRef.LinkShader(computeQuadTreeGenerateGeometryKey);
 
 
-    // put the bar emitters across from each and spraying particles toward each other and up so 
-    // that the particles collide near the middle with a slight upward velocity
 
-    // bar on the left and emitting up and right
-    glm::vec2 bar1P1(-0.5f, +0.1f);
-    glm::vec2 bar1P2(-0.5f, -0.1f);
-    glm::vec2 emitDir1(+1.0f, +0.5f);
-    float minVel = 0.1f;
-    float maxVel = 0.5f;
-    gpParticleEmitterBar1 = new ParticleEmitterBar(bar1P1, bar1P2, emitDir1, minVel, maxVel);
-    gpParticleEmitterBar1->SetTransform(windowSpaceTransform);
+    //// a render shader specifically for the particles (particle color may change depending on 
+    //// particle state, so it isn't the same as the geometry's render shader)
+    //std::string renderParticlesShaderKey = "render particles";
+    //shaderStorageRef.NewShader(renderParticlesShaderKey);
+    //shaderStorageRef.AddShaderFile(renderParticlesShaderKey, "Shaders/ParticleRender.vert", GL_VERTEX_SHADER);
+    //shaderStorageRef.AddShaderFile(renderParticlesShaderKey, "Shaders/ParticleRender.frag", GL_FRAGMENT_SHADER);
+    //shaderStorageRef.LinkShader(renderParticlesShaderKey);
 
-    // bar on the right and emitting up and left
-    glm::vec2 bar2P1 = glm::vec2(+0.5f, +0.1f);
-    glm::vec2 bar2P2 = glm::vec2(+0.5f, -0.1f);
-    glm::vec2 emitDir2 = glm::vec2(-1.0f, +0.5f);
-    gpParticleEmitterBar2 = new ParticleEmitterBar(bar2P1, bar2P2, emitDir2, minVel, maxVel);
-    gpParticleEmitterBar2->SetTransform(windowSpaceTransform);
+    //// a render shader specifically for the geometry (nothing special; just a transform, color 
+    //// white, pass through to frag shader)
+    //std::string renderGeometryShaderKey = "render geometry";
+    //shaderStorageRef.NewShader(renderGeometryShaderKey);
+    //shaderStorageRef.AddShaderFile(renderGeometryShaderKey, "Shaders/Geometry.vert", GL_VERTEX_SHADER);
+    //shaderStorageRef.AddShaderFile(renderGeometryShaderKey, "Shaders/Geometry.frag", GL_FRAGMENT_SHADER);
+    //shaderStorageRef.LinkShader(renderGeometryShaderKey);
+    //GLuint renderGeometryProgramId = shaderStorageRef.GetShaderProgram(renderGeometryShaderKey);
+    ////gUnifLocGeometryTransform = shaderStorageRef.GetUniformLocation(renderGeometryShaderKey, "transformMatrixWindowSpace");
 
-    // start up the encapsulation of the CPU side of the computer shader
-    gpParticleReseter = new ComputeParticleReset(MAX_PARTICLE_COUNT, computeShaderResetKey);
-    gpParticleReseter->AddEmitter(gpParticleEmitterBar1);
-    gpParticleReseter->AddEmitter(gpParticleEmitterBar2);
+    //// set up the particle region 
+    ////glm::mat4 windowSpaceTransform = glm::rotate(glm::mat4(), 45.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+    ////windowSpaceTransform *= glm::translate(glm::mat4(), glm::vec3(-0.1f, -0.05f, 0.0f));
+    //glm::mat4 windowSpaceTransform = glm::rotate(glm::mat4(), 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+    //windowSpaceTransform *= glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.0f));
 
-    gpParticleUpdater = new ComputeParticleUpdate(MAX_PARTICLE_COUNT, particleRegionCenter, particleRegionRadius, computeShaderUpdateKey);
+    //glm::vec4 particleRegionCenter = windowSpaceTransform * glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+    //float particleRegionRadius = 0.8f;
 
-    gpQuadTreeReseter = new ComputeQuadTreeReset(ParticleQuadTree::_NUM_STARTING_NODES, ParticleQuadTree::_MAX_NODES, computeShaderQuadTreeResetKey);
+    //std::vector<PolygonFace> particleRegionPolygonFaces;
+    //GenerateCircle(particleRegionCenter, particleRegionRadius, &particleRegionPolygonFaces);
+    //gpParticleBoundingRegionBuffer = new PolygonSsbo(particleRegionPolygonFaces);
+    //gpParticleBoundingRegionBuffer->ConfigureRender(renderGeometryProgramId, GL_LINES);
 
-    gpQuadTreeGeometryGenerator = new ComputeQuadTreeGenerateGeometry(ParticleQuadTree::_MAX_NODES, allPolygonFaces, computeQuadTreeGenerateGeometryKey);
+    //// set up the particle SSBO for computing and rendering
+    //std::vector<Particle> allParticles(MAX_PARTICLE_COUNT);
+    //gpParticleBuffer = new ParticleSsbo(allParticles);
+    //gpParticleBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeShaderResetKey), "ParticleBuffer");
+    //gpParticleBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeShaderUpdateKey), "ParticleBuffer");
+    //gpParticleBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreePopulateKey), "ParticleBuffer");
+    //gpParticleBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreeParticleColliderKey), "ParticleBuffer");
+    //gpParticleBuffer->ConfigureRender(shaderStorageRef.GetShaderProgram(renderParticlesShaderKey), GL_POINTS);
 
-    gpQuadTreePopulater = new ComputeQuadTreePopulate(ParticleQuadTree::_MAX_NODES, MAX_PARTICLE_COUNT, particleRegionRadius, particleRegionCenter, ParticleQuadTree::_NUM_COLUMNS_IN_TREE_INITIAL, ParticleQuadTree::_NUM_ROWS_IN_TREE_INITIAL, ParticleQuadTree::_NUM_STARTING_NODES, computeQuadTreePopulateKey);
+    //// set up the quad tree for computation
+    //ParticleQuadTree quadTree(particleRegionCenter, particleRegionRadius);
+    //gpQuadTreeBuffer = new QuadTreeNodeSsbo(quadTree._allQuadTreeNodes);
+    //gpQuadTreeBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeShaderQuadTreeResetKey), "QuadTreeNodeBuffer");
+    //gpQuadTreeBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreePopulateKey), "QuadTreeNodeBuffer");
+    //gpQuadTreeBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreeParticleColliderKey), "QuadTreeNodeBuffer");
+    //gpQuadTreeBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreeGenerateGeometryKey), "QuadTreeNodeBuffer");
 
-    gpQuadTreeParticleCollider = new ComputeParticleQuadTreeCollisions(MAX_PARTICLE_COUNT, computeQuadTreeParticleColliderKey);
+    //// set up the quad tree's nodes for rendering
+    //unsigned int allPolygonFaces = ParticleQuadTree::_MAX_NODES * 4;
+    //std::vector<PolygonFace> quadTreePolygonFaces(allPolygonFaces);
+    //gpQuadTreeGeometryBuffer = new PolygonSsbo(quadTreePolygonFaces);
+    //gpQuadTreeGeometryBuffer->ConfigureCompute(shaderStorageRef.GetShaderProgram(computeQuadTreeGenerateGeometryKey), "QuadTreeFaceBuffer");
+    //gpQuadTreeGeometryBuffer->ConfigureRender(renderGeometryProgramId, GL_LINES);
+
+
+    //// put the bar emitters across from each and spraying particles toward each other and up so 
+    //// that the particles collide near the middle with a slight upward velocity
+
+    //// bar on the left and emitting up and right
+    //glm::vec2 bar1P1(-0.5f, +0.1f);
+    //glm::vec2 bar1P2(-0.5f, -0.1f);
+    //glm::vec2 emitDir1(+1.0f, +0.5f);
+    //float minVel = 0.1f;
+    //float maxVel = 0.5f;
+    //gpParticleEmitterBar1 = new ParticleEmitterBar(bar1P1, bar1P2, emitDir1, minVel, maxVel);
+    //gpParticleEmitterBar1->SetTransform(windowSpaceTransform);
+
+    //// bar on the right and emitting up and left
+    //glm::vec2 bar2P1 = glm::vec2(+0.5f, +0.1f);
+    //glm::vec2 bar2P2 = glm::vec2(+0.5f, -0.1f);
+    //glm::vec2 emitDir2 = glm::vec2(-1.0f, +0.5f);
+    //gpParticleEmitterBar2 = new ParticleEmitterBar(bar2P1, bar2P2, emitDir2, minVel, maxVel);
+    //gpParticleEmitterBar2->SetTransform(windowSpaceTransform);
+
+    //// start up the encapsulation of the CPU side of the computer shader
+    //gpParticleReseter = new ComputeParticleReset(MAX_PARTICLE_COUNT, computeShaderResetKey);
+    //gpParticleReseter->AddEmitter(gpParticleEmitterBar1);
+    //gpParticleReseter->AddEmitter(gpParticleEmitterBar2);
+
+    //gpParticleUpdater = new ComputeParticleUpdate(MAX_PARTICLE_COUNT, particleRegionCenter, particleRegionRadius, computeShaderUpdateKey);
+
+    //gpQuadTreeReseter = new ComputeQuadTreeReset(ParticleQuadTree::_NUM_STARTING_NODES, ParticleQuadTree::_MAX_NODES, computeShaderQuadTreeResetKey);
+
+    //gpQuadTreeGeometryGenerator = new ComputeQuadTreeGenerateGeometry(ParticleQuadTree::_MAX_NODES, allPolygonFaces, computeQuadTreeGenerateGeometryKey);
+
+    //gpQuadTreePopulater = new ComputeQuadTreePopulate(ParticleQuadTree::_MAX_NODES, MAX_PARTICLE_COUNT, particleRegionRadius, particleRegionCenter, ParticleQuadTree::_NUM_COLUMNS_IN_TREE_INITIAL, ParticleQuadTree::_NUM_ROWS_IN_TREE_INITIAL, ParticleQuadTree::_NUM_STARTING_NODES, computeQuadTreePopulateKey);
+
+    //gpQuadTreeParticleCollider = new ComputeParticleQuadTreeCollisions(MAX_PARTICLE_COUNT, computeQuadTreeParticleColliderKey);
 
     // the timer will be used for framerate calculations
     gTimer.Init();
@@ -413,59 +421,59 @@ void UpdateAllTheThings()
     // just hard-code it for this demo
     float deltaTimeSec = 0.01f;
 
-    // reset inactive particles and update active particles (the MAGIC happens here)
-    // Note: 20 particles per emitter per frame * 8 emitters * 60 frames per second stabilizes 
-    // (for this particle region and the emitters' min-max spawn velocities) at ~45,000 active 
-    // particles in one moment.
-    // Also Note: 50 easily maxes out the maximuum 100,000 total particles active at one time.
-    gpParticleReseter->ResetParticles(5);
-    gpParticleUpdater->Update(deltaTimeSec);
+    //// reset inactive particles and update active particles (the MAGIC happens here)
+    //// Note: 20 particles per emitter per frame * 8 emitters * 60 frames per second stabilizes 
+    //// (for this particle region and the emitters' min-max spawn velocities) at ~45,000 active 
+    //// particles in one moment.
+    //// Also Note: 50 easily maxes out the maximuum 100,000 total particles active at one time.
+    //gpParticleReseter->ResetParticles(5);
+    //gpParticleUpdater->Update(deltaTimeSec);
 
-    gpQuadTreeReseter->ResetQuadTree();
-    gpQuadTreePopulater->PopulateTree();
+    //gpQuadTreeReseter->ResetQuadTree();
+    //gpQuadTreePopulater->PopulateTree();
 
 
-    ////GLuint bufferSizeBytes = sizeof(Particle) * MAX_PARTICLE_COUNT;
-    //GLuint bufferSizeBytes = sizeof(ParticleQuadTreeNode) * ParticleQuadTree::_MAX_NODES;
-    //GLuint copyBufferId;
-    //glGenBuffers(1, &copyBufferId);
-    //glBindBuffer(GL_COPY_WRITE_BUFFER, copyBufferId);
-    //glBufferData(GL_COPY_WRITE_BUFFER, bufferSizeBytes, 0, GL_DYNAMIC_COPY);
-    ////glBindBuffer(GL_COPY_READ_BUFFER, gpParticleBuffer->BufferId());
-    //glBindBuffer(GL_COPY_READ_BUFFER, gpQuadTreeBuffer->BufferId());
-    //glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, bufferSizeBytes);
-    //void *bufferPtr = glMapBuffer(GL_COPY_WRITE_BUFFER, GL_READ_ONLY);
-    ////Particle *objPtr = static_cast<Particle *>(bufferPtr);
-    //ParticleQuadTreeNode *objPtr = static_cast<ParticleQuadTreeNode *>(bufferPtr);
-    //
-    ////for (size_t i = 0; i < MAX_PARTICLE_COUNT; i++)
+    //////GLuint bufferSizeBytes = sizeof(Particle) * MAX_PARTICLE_COUNT;
+    ////GLuint bufferSizeBytes = sizeof(ParticleQuadTreeNode) * ParticleQuadTree::_MAX_NODES;
+    ////GLuint copyBufferId;
+    ////glGenBuffers(1, &copyBufferId);
+    ////glBindBuffer(GL_COPY_WRITE_BUFFER, copyBufferId);
+    ////glBufferData(GL_COPY_WRITE_BUFFER, bufferSizeBytes, 0, GL_DYNAMIC_COPY);
+    //////glBindBuffer(GL_COPY_READ_BUFFER, gpParticleBuffer->BufferId());
+    ////glBindBuffer(GL_COPY_READ_BUFFER, gpQuadTreeBuffer->BufferId());
+    ////glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, bufferSizeBytes);
+    ////void *bufferPtr = glMapBuffer(GL_COPY_WRITE_BUFFER, GL_READ_ONLY);
+    //////Particle *objPtr = static_cast<Particle *>(bufferPtr);
+    ////ParticleQuadTreeNode *objPtr = static_cast<ParticleQuadTreeNode *>(bufferPtr);
+    ////
+    //////for (size_t i = 0; i < MAX_PARTICLE_COUNT; i++)
+    //////{
+    //////    Particle &p = objPtr[i];
+    //////    if (p._indexOfNodeThatItIsOccupying >= MAX_PARTICLE_COUNT)
+    //////    {
+    //////        printf("");
+    //////    }
+    //////}
+    ////for (size_t i = 0; i < ParticleQuadTree::_MAX_NODES; i++)
     ////{
-    ////    Particle &p = objPtr[i];
-    ////    if (p._indexOfNodeThatItIsOccupying >= MAX_PARTICLE_COUNT)
+    ////    ParticleQuadTreeNode &node = objPtr[i];
+    ////    if (node._numCurrentParticles == -1 ||
+    ////        node._numCurrentParticles > ParticleQuadTreeNode::MAX_PARTICLES_PER_QUAD_TREE_NODE)
     ////    {
     ////        printf("");
     ////    }
     ////}
-    //for (size_t i = 0; i < ParticleQuadTree::_MAX_NODES; i++)
-    //{
-    //    ParticleQuadTreeNode &node = objPtr[i];
-    //    if (node._numCurrentParticles == -1 ||
-    //        node._numCurrentParticles > ParticleQuadTreeNode::MAX_PARTICLES_PER_QUAD_TREE_NODE)
-    //    {
-    //        printf("");
-    //    }
-    //}
 
-    //glUnmapBuffer(GL_COPY_WRITE_BUFFER);
-    //glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
-    //glBindBuffer(GL_COPY_READ_BUFFER, 0);
-    //glDeleteBuffers(1, &copyBufferId);
+    ////glUnmapBuffer(GL_COPY_WRITE_BUFFER);
+    ////glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+    ////glBindBuffer(GL_COPY_READ_BUFFER, 0);
+    ////glDeleteBuffers(1, &copyBufferId);
 
-    
+    //
 
 
-    gpQuadTreeParticleCollider->Update(deltaTimeSec);
-    gpQuadTreeGeometryGenerator->GenerateGeometry();
+    //gpQuadTreeParticleCollider->Update(deltaTimeSec);
+    //gpQuadTreeGeometryGenerator->GenerateGeometry();
 
     // tell glut to call this display() function again on the next iteration of the main loop
     // Note: https://www.opengl.org/discussion_boards/showthread.php/168717-I-dont-understand-what-glutPostRedisplay()-does
@@ -496,27 +504,27 @@ void Display()
     glClearDepth(1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // draw the particle region borders
-    glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("render geometry"));
-    //glUniformMatrix4fv(gUnifLocGeometryTransform, 1, GL_FALSE, glm::value_ptr(windowSpaceTransform));
-    GLuint vaoId = gpParticleBoundingRegionBuffer->VaoId();
-    GLenum drawStyle = gpParticleBoundingRegionBuffer->DrawStyle();
-    GLuint numVertices = gpParticleBoundingRegionBuffer->NumVertices();
-    glBindVertexArray(vaoId);
-    glDrawArrays(drawStyle, 0, numVertices);
-
-    //// draw the nodes of the quad tree
-    //// Note: Keep using the "render geometry" shader.
-    //vaoId = gpQuadTreeGeometryBuffer->VaoId();
-    //drawStyle = gpQuadTreeGeometryBuffer->DrawStyle();
-    //numVertices = gpQuadTreeGeometryGenerator->NumActiveFaces() * 2;
+    //// draw the particle region borders
+    //glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("render geometry"));
+    ////glUniformMatrix4fv(gUnifLocGeometryTransform, 1, GL_FALSE, glm::value_ptr(windowSpaceTransform));
+    //GLuint vaoId = gpParticleBoundingRegionBuffer->VaoId();
+    //GLenum drawStyle = gpParticleBoundingRegionBuffer->DrawStyle();
+    //GLuint numVertices = gpParticleBoundingRegionBuffer->NumVertices();
     //glBindVertexArray(vaoId);
     //glDrawArrays(drawStyle, 0, numVertices);
 
-    // draw the particles
-    glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("render particles"));
-    glBindVertexArray(gpParticleBuffer->VaoId());
-    glDrawArrays(gpParticleBuffer->DrawStyle(), 0, gpParticleBuffer->NumVertices());
+    ////// draw the nodes of the quad tree
+    ////// Note: Keep using the "render geometry" shader.
+    ////vaoId = gpQuadTreeGeometryBuffer->VaoId();
+    ////drawStyle = gpQuadTreeGeometryBuffer->DrawStyle();
+    ////numVertices = gpQuadTreeGeometryGenerator->NumActiveFaces() * 2;
+    ////glBindVertexArray(vaoId);
+    ////glDrawArrays(drawStyle, 0, numVertices);
+
+    //// draw the particles
+    //glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("render particles"));
+    //glBindVertexArray(gpParticleBuffer->VaoId());
+    //glDrawArrays(gpParticleBuffer->DrawStyle(), 0, gpParticleBuffer->NumVertices());
 
     // draw the frame rate once per second in the lower left corner
     GLfloat color[4] = { 0.5f, 0.5f, 0.0f, 1.0f };
@@ -543,16 +551,16 @@ void Display()
     glUseProgram(ShaderStorage::GetInstance().GetShaderProgram("freetype"));
     gTextAtlases.GetAtlas(48)->RenderText(str, xy, scaleXY, color);
 
-    // now show number of active particles
-    // Note: For some reason, lower case "i" seems to appear too close to the other letters.
-    sprintf(str, "active: %d", gpParticleUpdater->NumActiveParticles());
-    float numActiveParticlesXY[2] = { -0.99f, +0.7f };
-    gTextAtlases.GetAtlas(48)->RenderText(str, numActiveParticlesXY, scaleXY, color);
+    //// now show number of active particles
+    //// Note: For some reason, lower case "i" seems to appear too close to the other letters.
+    //sprintf(str, "active: %d", gpParticleUpdater->NumActiveParticles());
+    //float numActiveParticlesXY[2] = { -0.99f, +0.7f };
+    //gTextAtlases.GetAtlas(48)->RenderText(str, numActiveParticlesXY, scaleXY, color);
 
-    // now draw the number of active quad tree nodes
-    sprintf(str, "nodes: %d", gpQuadTreeGeometryGenerator->NumActiveFaces());
-    float numActiveNodesXY[2] = { -0.99f, +0.5f };
-    gTextAtlases.GetAtlas(48)->RenderText(str, numActiveNodesXY, scaleXY, color);
+    //// now draw the number of active quad tree nodes
+    //sprintf(str, "nodes: %d", gpQuadTreeGeometryGenerator->NumActiveFaces());
+    //float numActiveNodesXY[2] = { -0.99f, +0.5f };
+    //gTextAtlases.GetAtlas(48)->RenderText(str, numActiveNodesXY, scaleXY, color);
 
 
     // clean up bindings

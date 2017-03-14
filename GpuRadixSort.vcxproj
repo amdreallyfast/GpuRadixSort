@@ -165,6 +165,7 @@
     <ClCompile Include="Source\RenderFrameRate\Stopwatch.cpp" />
     <ClCompile Include="Source\SSBOs\ParticleSsbo.cpp" />
     <ClCompile Include="Source\SSBOs\PolygonSsbo.cpp" />
+    <ClCompile Include="Source\SSBOs\PrefixSumSsbo.cpp" />
     <ClCompile Include="Source\SSBOs\QuadTreeNodeSsbo.cpp" />
     <ClCompile Include="Source\SSBOs\SsboBase.cpp" />
   </ItemGroup>
@@ -192,6 +193,7 @@
     <ClInclude Include="Include\RenderFrameRate\Stopwatch.h" />
     <ClInclude Include="Include\SSBOs\ParticleSsbo.h" />
     <ClInclude Include="Include\SSBOs\PolygonSsbo.h" />
+    <ClInclude Include="Include\SSBOs\PrefixSumSsbo.h" />
     <ClInclude Include="Include\SSBOs\QuadTreeNodeSsbo.h" />
     <ClInclude Include="Include\SSBOs\SsboBase.h" />
     <ClInclude Include="Shaders\ShaderStorage.h" />

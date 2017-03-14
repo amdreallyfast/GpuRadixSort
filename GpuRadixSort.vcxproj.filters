@@ -62,6 +62,9 @@
     <ClCompile Include="Source\ComputeControllers\QuadTreeReset.cpp">
       <Filter>Source\ComputeControllers</Filter>
     </ClCompile>
+    <ClCompile Include="Source\SSBOs\PrefixSumSsbo.cpp">
+      <Filter>Source\SSBOs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shaders\ShaderStorage.h">
@@ -141,6 +144,9 @@
     </ClInclude>
     <ClInclude Include="Include\ComputeControllers\ParticleSort.h">
       <Filter>Include\ComputeControllers</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\SSBOs\PrefixSumSsbo.h">
+      <Filter>Include\SSBOs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
