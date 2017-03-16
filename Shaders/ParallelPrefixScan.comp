@@ -14,107 +14,37 @@ Description:
 Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
 
-#version 440
-
-// this algorithm relies on using a power of 2 threads in a binary tree pattern within each work 
-// group, so the number of threads must be a power of 2 
-#define WORK_GROUP_SIZE_X 512
+// REQUIRES Version.comp
+// REQUIRES ParallelSortConstants.comp
+//  WORK_GROUP_SIZE_X/Y/Z
+//  ITEMS_PER_WORK_GROUP
+//  
+// REQUIRES SsboBufferBindings.comp
+//  PREFIX_SCAN_BUFFER_BINDING
 
 layout (local_size_x = WORK_GROUP_SIZE_X, local_size_y = 1, local_size_z = 1) in;
-
-// create a shared memory buffer for fast memory operations (better than global), two items per 
-// thread, and initialize to 0
-// Note: By definition of keyword "shared", this is shared amongst all threads in a work group.
-#define SHARED_DATA_SIZE (WORK_GROUP_SIZE_X * 2)
-//shared uint[SHARED_DATA_SIZE] fastTempArr = uint[SHARED_DATA_SIZE](0);
-
 
 /*------------------------------------------------------------------------------------------------
 Description:
     This is the data that is being scanned AND that is being altered into a prefix sum.
-    Size of perGroupSums: Work group size * 2.
-    Size of allIntData: Equivalent to max number of particles.
-
-    Note: Make sure that any unused data is at least set to 0.  This algorithm relies on making 
-    binary trees within each thread group, so the data set size that each work group operates on 
-    must be a power of 2 for it to work properly.  If the last chunk of data in the buffer has 
-    fewer items than the required data set size (work group size * 2), then the threads that are 
-    supposed to be working on the latter part of the array won't run (see the global thread 
-    check at the beginning of main()) and the binary tree, and hence the "prefix sum" algorithm, 
-    will not work properly.  So make this a power of 2.
-
-    Note: The perGroupSums array will need to be prefix-summed as well, so it needs to be at 
-    least the size of a single work group, but since each thread will work on 2 items at once, 
-    then this array can be work group size * 2 (SHARED_DATA_SIZE).
-
+    See explanation of sizes in PrefixSumSsbo.
 Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
-layout (std430) buffer IntBuffer
-//layout (std430, binding = PREFIX_SCAN_INT_BUFFER_BINDING) buffer IntBuffer
+layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer PrefixScanBuffer
+//layout (std430) buffer PrefixScanBuffer
 {
-    uint perGroupSums[SHARED_DATA_SIZE];
-    uint allIntData[];
+    uint perGroupSums[ITEMS_PER_WORK_GROUP];
+    uint allPrefixSums[];
 };
 
-/*------------------------------------------------------------------------------------------------
-Description:
-    This algorithm has each thread working on 2 data items, so the usual uMax*Count uniform doesn't have much use as a thread check, but a "max thread count" does.
-
-    "Max thread count" = num particles / 2.  This value is determined in ParticleSort::Sort().
-    Each thread handles two elements, and prefix sums are calculated for an entire work group, so
-    each work group handles "work group size" * 2 elements.
-
-    Ex 1: num particles = 42, work group size = 512
-    num work groups = (42 / (512 * 2)) + 1 
-                    = (42 / 1024) + 1
-                    = 0 + 1
-                    = 1
-    max thread count    = (42 / 2)
-                        = 21 (thread IDs 0 - 20)
-    In this example, threads 22 - 511 will have no data to work on.  Threads 0 - 20 will operate 
-    on the 42 items (thread 0 on indices 0 and 1, thread 1 on indices 1 and 2, ..., thread 20 on 
-    indices 40 and 41).  The shared memory structure is already initialized to 0s, so the extra 
-    threads should just return.
-
-    Ex 2: num particles = 2500, work group size = 512
-    num work groups = (2500 / (512 * 2)) + 1
-                    = (2500 / 1024) + 1
-                    = 2 + 1
-                    = 3
-    max thread count    = (2500 / 2)
-                        = 1250 (thread IDs 0 - 1249)
-    In this example:
-    - 512 threads (0 - 511) calculate the prefix sum for work group 0 (indices 0 - 1023)
-    - 512 threads (512 - 1023) calculate the pregix sum for work group 1 (indices 1024 - 2047)
-    - 226 threads (1024 - 1249) calculate the prefix sum for work group 2 (indices 2048 - 2499)
-    The rest of the threads in work group 2 ((512 * 3) - 1250) = 286 threads (1250 - 1536) will 
-    have nothing to do and should simply return.
-
-Creator:    John Cox, 3/16/2017
-------------------------------------------------------------------------------------------------*/
+// see explanation in ParticleSort.cpp, CalculateMaxThreadCount(...)
 uniform uint uMaxThreadCount;
 
+// create a shared memory buffer for fast memory operations (better than global), two items per 
+// thread, and initialize to 0
+// Note: By definition of keyword "shared", this is shared amongst all threads in a work group.
+//shared uint[ITEMS_PER_WORK_GROUP] fastTempArr = uint[ITEMS_PER_WORK_GROUP](0);
 
-
-
-
-///*------------------------------------------------------------------------------------------------
-//Description:
-//    This prefix sums algorithm operates within thread groups.  If the total data set is larger 
-//    than what a single thread group can handle (work group size * 2), then any other algorithm 
-//    that relies on these sums must have more context.  
-//
-//    This demo is for radix sort, so the scans of each work group are required + the total sums
-//    from each work group.
-//
-//    Note: This buffer implicitly has gl_WorkGroupSize.x items.
-//Creator:    John Cox, 3/11/2017
-//------------------------------------------------------------------------------------------------*/
-//layout (std430) buffer GroupSumsBuffer
-////layout (std430, binding = PREFIX_SCAN_GROUP_SUMS_BUFFER_BINDING) buffer GroupSumsBuffer
-//{
-//    int perGroupSums[];
-//};
 
 /*------------------------------------------------------------------------------------------------
 Description:
@@ -123,46 +53,27 @@ Description:
     the scan (up the tree and back down), then writes their two result back to global memory.
 Parameters: None
 Returns:    None
-Creator:    John Cox, 3/11/2017
+Creator:    John Cox, 3/16/2017
 ------------------------------------------------------------------------------------------------*/
-void main()
+void CalculateAllPrefixSums()
 {
-    if (gl_GlobalInvocationID.x >= uMaxThreadCount)
-    {
-        // nothing for this thread to do
-        return;
-    }
-
     // from now on, only deal with the suff in your own work group
     // Note: Each thread deals with 2 items.
-    //uint startingIndex = SHARED_DATA_SIZE + (gl_WorkGroupID.x * (gl_WorkGroupSize.x * 2));
-    uint allIntDataStartingIndex = (gl_WorkGroupID.x * (gl_WorkGroupSize.x * 2));
+    uint workGroupStartingIndex = (gl_WorkGroupID.x * (gl_WorkGroupSize.x * 2));
     uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
-
-    //perGroupSums[1] = startingIndex;
 
     uint indexMultiplierDueToDepth = 1;
     uint loopCounter = 0;
-    for (int dataPairs = SHARED_DATA_SIZE >> 1; dataPairs > 0; dataPairs >>= 1)
+    for (int dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
     {
         barrier();
 
         if (gl_LocalInvocationID.x < dataPairs)
         {
-            uint lesserIndex = allIntDataStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-            uint greaterIndex = allIntDataStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
-//            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-//            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            uint lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            uint greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
-//            //if (doubleGroupThreadIndex == 0)
-//            if (gl_GlobalInvocationID.x == 1)
-//            {
-//                perGroupSums[1 + (loopCounter * 2) + 0] = lesserIndex;
-//                perGroupSums[1 + (loopCounter * 2) + 1] = greaterIndex;
-//                loopCounter++;
-//            }
-
-            allIntData[greaterIndex] += allIntData[lesserIndex];
+            allPrefixSums[greaterIndex] += allPrefixSums[lesserIndex];
         }
         indexMultiplierDueToDepth *= 2;
     }
@@ -170,27 +81,23 @@ void main()
     // only one thread should do these (prevents unnecessary writes)
     if (doubleGroupThreadIndex == 0)
     {
-        perGroupSums[gl_WorkGroupID.x] = allIntData[allIntDataStartingIndex + SHARED_DATA_SIZE - 1];
-        allIntData[allIntDataStartingIndex + SHARED_DATA_SIZE - 1] = 0;
-//        perGroupSums[gl_WorkGroupID.x] = allIntData[SHARED_DATA_SIZE - 1];
-//        allIntData[SHARED_DATA_SIZE - 1] = 0;
+        perGroupSums[gl_WorkGroupID.x] = allPrefixSums[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1];
+        allPrefixSums[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1] = 0;
     }
     indexMultiplierDueToDepth >>= 1;
 
-    for (int dataPairs = 1; dataPairs < SHARED_DATA_SIZE; dataPairs *= 2)
+    for (int dataPairs = 1; dataPairs < ITEMS_PER_WORK_GROUP; dataPairs *= 2)
     {
         barrier();
         
         if (gl_LocalInvocationID.x < dataPairs)
         {
-            uint lesserIndex = allIntDataStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-            uint greaterIndex = allIntDataStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
-//            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-//            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            uint lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            uint greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
-            uint temp = allIntData[lesserIndex];
-            allIntData[lesserIndex] = allIntData[greaterIndex];
-            allIntData[greaterIndex] += temp;
+            uint temp = allPrefixSums[lesserIndex];
+            allPrefixSums[lesserIndex] = allPrefixSums[greaterIndex];
+            allPrefixSums[greaterIndex] += temp;
         }
 
         indexMultiplierDueToDepth >>= 1;
@@ -211,8 +118,8 @@ void main()
 //
 //    // Copy from global to shared data for a faster algorithm (and easier index calculations)
 //    // Note: Two elements per thread.
-//    fastTempArr[doubleGroupThreadIndex] = allIntData[doubleGlobalThreadIndex];
-//    fastTempArr[doubleGroupThreadIndex + 1] = allIntData[doubleGlobalThreadIndex + 1];
+//    fastTempArr[doubleGroupThreadIndex] = allPrefixSums[doubleGlobalThreadIndex];
+//    fastTempArr[doubleGroupThreadIndex + 1] = allPrefixSums[doubleGlobalThreadIndex + 1];
 //
 //    // called simply "offset" in the GPU Gems article, this is a multiplier that works in 
 //    // conjunction with the thread number to calculate which index pairs are being considered on 
@@ -220,7 +127,7 @@ void main()
 //    uint indexMultiplierDueToDepth = 0;
 //
 //    // going up divides pair count in half with each level
-//    for (int dataPairs = SHARED_DATA_SIZE >> 1; dataPairs > 0; dataPairs >>= 1)
+//    for (int dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
 //    {
 //        // wait for other threads in the group to catch up
 //        barrier();
@@ -250,25 +157,25 @@ void main()
 //        // has the sum of all items in the entire array.  The following "going down" loop will 
 //        // change the data into a prefix-only sums array.  Record the entire sum while it is 
 //        // still available.
-//        preGroupSums[gl_WorkGroupID.x] = fastTempArr[SHARED_DATA_SIZE - 1];
+//        preGroupSums[gl_WorkGroupID.x] = fastTempArr[ITEMS_PER_WORK_GROUP - 1];
 //        
 //        // this is just part of the algorithm
-//        // Note: If the total data size does not evenly divide SHARED_DATA_SIZE, thenthe last 
+//        // Note: If the total data size does not evenly divide ITEMS_PER_WORK_GROUP, thenthe last 
 //        // group's fastTempArr won't be entirely full, the threads that deal with the latter 
 //        // part of the data will have been cut off at the start of main(), and this step will be 
 //        // useless.
-//        fastTempArr[SHARED_DATA_SIZE - 1] = 0;
+//        fastTempArr[ITEMS_PER_WORK_GROUP - 1] = 0;
 //    }
 //
 //    // undo the last loop's indexMultiplierDueToDepth
 //    // Note: After the last loop, indexMultiplierDueToDepth had been multiplied by 2 as many 
-//    // times as dataPairs had been divided by 2, so it is now equivalent to SHARED_DATA_SIZE 
+//    // times as dataPairs had been divided by 2, so it is now equivalent to ITEMS_PER_WORK_GROUP 
 //    // (assuming that it is a power of 2).  Divide by 2 so that it can be used to calculate the 
 //    // indices of the first data pair off the root.
 //    indexMultiplierDueToDepth >>= 1;
 //
 //    // going down multiplies pair count in half with each level
-//    for (int dataPairs = 1; dataPairs < SHARED_DATA_SIZE); dataPairs *= 2)
+//    for (int dataPairs = 1; dataPairs < ITEMS_PER_WORK_GROUP); dataPairs *= 2)
 //    {
 //        // wair for the other threads in the group to catch up
 //        barrier();
@@ -294,9 +201,53 @@ void main()
 //    // write the data back, two elements per thread, but wait for all the group threads to 
 //    // finish their loops first
 //    barrier();
-//    allIntData[doubleGlobalThreadIndex] = fastTempArr[doubleGroupThreadIndex];
-//    allIntData[doubleGlobalThreadIndex + 1] = fastTempArr[doubleGroupThreadIndex + 1];
+//    allPrefixSums[doubleGlobalThreadIndex] = fastTempArr[doubleGroupThreadIndex];
+//    allPrefixSums[doubleGlobalThreadIndex + 1] = fastTempArr[doubleGroupThreadIndex + 1];
 //
-//    // done!
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Like CalculateAllPrefixSums(), but only only for the perGroupSums.
+Parameters: None
+Returns:    None
+Creator:    John Cox, 3/16/2017
+------------------------------------------------------------------------------------------------*/
+void PrefixSumOnPerGroupSums()
+{
+}
+
+
+uniform uint uCalculateAll;
+
+/*------------------------------------------------------------------------------------------------
+Description:
+Parameters: None
+Returns:    None
+Creator:    John Cox, 3/11/2017
+------------------------------------------------------------------------------------------------*/
+void main()
+{
+    if (gl_GlobalInvocationID.x >= uMaxThreadCount)
+    {
+        // nothing for this thread to do
+        return;
+    }
+
+    CalculateAllPrefixSums();
+    //perGroupSums[0] = 37;
+//    if (uCalculateAll == 1)
+//    {
+//        // calculate the prefix sums for everyone and fill out the collection of per-work-group sums
+//        CalculateAllPrefixSums();
+//    }
+//    else
+//    {
+//        // calculate the prefix sums for the collection of per-work-group sums, turning this 
+//        // array from a collection of individual sums into a prefix sum array itself
+//        PrefixSumOnPerGroupSums();
+//    }
+
+    // done!
 }
 

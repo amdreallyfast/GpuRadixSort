@@ -186,6 +186,9 @@
     <Filter Include="Source\Particles">
       <UniqueIdentifier>{789f16aa-291c-4f62-b18d-76fa2531514f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\ComputeHeaders">
+      <UniqueIdentifier>{4a9181d3-a159-42fa-8a8f-939c4cebf171}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\FreeType.frag">
@@ -235,6 +238,15 @@
     </None>
     <None Include="Shaders\ParallelPrefixScan.comp">
       <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\ComputeHeaders\ParallelSortConstants.comp">
+      <Filter>Shaders\ComputeHeaders</Filter>
+    </None>
+    <None Include="Shaders\ComputeHeaders\SsboBufferBindings.comp">
+      <Filter>Shaders\ComputeHeaders</Filter>
+    </None>
+    <None Include="Shaders\ComputeHeaders\Version.comp">
+      <Filter>Shaders\ComputeHeaders</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -200,6 +200,9 @@
     <ClInclude Include="Shaders\ShaderStorage.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\ComputeHeaders\ParallelSortConstants.comp" />
+    <None Include="Shaders\ComputeHeaders\SsboBufferBindings.comp" />
+    <None Include="Shaders\ComputeHeaders\Version.comp" />
     <None Include="Shaders\FreeType.frag" />
     <None Include="Shaders\FreeType.vert" />
     <None Include="Shaders\Geometry.frag" />

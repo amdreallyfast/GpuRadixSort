@@ -1,0 +1,24 @@
+/*------------------------------------------------------------------------------------------------
+Description:
+    This is a set of constants that are useful for reducing coupling between SSBOs and 
+    individual compute shaders.  Some of the SSBOs are in multiple compute shaders, so it used 
+    to be that SsboBase required that derived classes define ConfigureCompute(...):
+    - glBindBuffer(GL_SHADER_STORAGE_BUFFER, ...)
+    - glGetProgramResourceIndex(...) for that shader program
+    - glShaderStorageBlockBinding(...) for that shader program
+    - glBindBufferBase(GL_SHADER_STORAGE_BUFFER, ...)  
+    
+    This created a coupling between the shader construction and the SSBOs.  
+
+    By defining SSBO buffer bindings in one place, then multiple shaders define the same SSBO by 
+    explicitly declaring the buffer binding location.  Then no lookup is required.  And since 
+    the bindings are all declared here, they are easy to keep unique.
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/
+
+#ifndef SSBO_BUFFER_BINDINGS_COMP
+#define SSBO_BUFFER_BINDINGS_COMP
+
+#define PREFIX_SCAN_BUFFER_BINDING 1
+
+#endif

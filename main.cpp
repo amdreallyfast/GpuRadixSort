@@ -715,7 +715,7 @@ int main(int argc, char *argv[])
     glutInitContextProfile(GLUT_CORE_PROFILE);
 
     // enable this for automatic message reporting (see OpenGlErrorHandling.cpp)
-//#define DEBUG
+#define DEBUG
 #ifdef DEBUG
     glutInitContextFlags(GLUT_DEBUG);
 #endif
