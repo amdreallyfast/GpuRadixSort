@@ -46,6 +46,12 @@
 #include "Include/SSBOs/ParticleSsbo.h"
 #include "Include/SSBOs/PolygonSsbo.h"
 #include "Include/SSBOs/QuadTreeNodeSsbo.h"
+
+
+#include "Include/ComputeControllers/ParticleSort.h"
+
+
+
 #include "Include/ComputeControllers/ParticleReset.h"
 #include "Include/ComputeControllers/ParticleUpdate.h"
 #include "Include/ComputeControllers/QuadTreeReset.h"
@@ -83,6 +89,9 @@ ComputeQuadTreeReset *gpQuadTreeReseter = 0;
 ComputeQuadTreeGenerateGeometry *gpQuadTreeGeometryGenerator = 0;
 ComputeQuadTreePopulate *gpQuadTreePopulater = 0;
 ComputeParticleQuadTreeCollisions *gpQuadTreeParticleCollider = 0;
+
+
+ParticleSort *gpParticleSort = nullptr;
 
 const unsigned int MAX_PARTICLE_COUNT = 100000;
 
@@ -207,7 +216,15 @@ void Init()
     shaderStorageRef.LinkShader(freeTypeShaderKey);
     GLuint freeTypeProgramId = shaderStorageRef.GetShaderProgram(freeTypeShaderKey);
     gTextAtlases.Init("ThirdParty/freetype-2.6.1/FreeSans.ttf", freeTypeProgramId);
-    
+
+
+
+    gpParticleSort = new ParticleSort(16);
+    gpParticleSort->Sort(16);
+
+    printf("");
+
+
     //// for the particle compute shader stuff
     //std::string computeShaderUpdateKey = "compute particle update";
     //std::string shaderFilePath = "Shaders/ParticleUpdate.comp";

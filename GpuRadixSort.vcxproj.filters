@@ -65,6 +65,9 @@
     <ClCompile Include="Source\SSBOs\PrefixSumSsbo.cpp">
       <Filter>Source\SSBOs</Filter>
     </ClCompile>
+    <ClCompile Include="Source\ComputeControllers\ParticleSort.cpp">
+      <Filter>Source\ComputeControllers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Shaders\ShaderStorage.h">

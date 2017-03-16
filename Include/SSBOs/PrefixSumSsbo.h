@@ -12,6 +12,9 @@ Creator:    John Cox, 3/13/2017
 class PrefixSumSsbo : public SsboBase
 {
 public:
-    PrefixSumSsbo();
+    PrefixSumSsbo(int numParticles);
+
+    void ConfigureCompute(unsigned int computeProgramId, const std::string &bufferNameInShader) override;
+    void ConfigureRender(unsigned int renderProgramId, unsigned int drawStyle) override;
 
 };

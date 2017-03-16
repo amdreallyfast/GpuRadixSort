@@ -149,6 +149,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Shaders\ShaderStorage.cpp" />
     <ClCompile Include="Source\ComputeControllers\ParticleReset.cpp" />
+    <ClCompile Include="Source\ComputeControllers\ParticleSort.cpp" />
     <ClCompile Include="Source\ComputeControllers\ParticleUpdate.cpp" />
     <ClCompile Include="Source\ComputeControllers\QuadTreeGenerateGeometry.cpp" />
     <ClCompile Include="Source\ComputeControllers\QuadTreeParticleCollisions.cpp" />
