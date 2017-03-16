@@ -18,7 +18,7 @@ Creator:    John Cox, 3/11/2017
 
 // this algorithm relies on using a power of 2 threads in a binary tree pattern within each work 
 // group, so the number of threads must be a power of 2 
-#define WORK_GROUP_SIZE_X 256
+#define WORK_GROUP_SIZE_X 512
 
 layout (local_size_x = WORK_GROUP_SIZE_X, local_size_y = 1, local_size_z = 1) in;
 
@@ -135,11 +135,11 @@ void main()
 
     // from now on, only deal with the suff in your own work group
     // Note: Each thread deals with 2 items.
-    uint startingIndex = SHARED_DATA_SIZE + (gl_WorkGroupID.x * (gl_WorkGroupSize.x * 2));
+    //uint startingIndex = SHARED_DATA_SIZE + (gl_WorkGroupID.x * (gl_WorkGroupSize.x * 2));
+    uint allIntDataStartingIndex = (gl_WorkGroupID.x * (gl_WorkGroupSize.x * 2));
     uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
 
-    //perGroupSums[gl_LocalInvocationID.x] += 1;
-    perGroupSums[2] = startingIndex;
+    //perGroupSums[1] = startingIndex;
 
     uint indexMultiplierDueToDepth = 1;
     uint loopCounter = 0;
@@ -147,73 +147,46 @@ void main()
     {
         barrier();
 
-
-
         if (gl_LocalInvocationID.x < dataPairs)
         {
-            uint lesserIndex = startingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-            uint greaterIndex = startingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            uint lesserIndex = allIntDataStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            uint greaterIndex = allIntDataStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+//            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+//            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
-
-//            if (doubleGroupThreadIndex == 0)
+//            //if (doubleGroupThreadIndex == 0)
+//            if (gl_GlobalInvocationID.x == 1)
 //            {
-//                perGroupSums[(loopCounter * 2)] = lesserIndex;
-//                perGroupSums[(loopCounter * 2) + 1] = greaterIndex;
-//
+//                perGroupSums[1 + (loopCounter * 2) + 0] = lesserIndex;
+//                perGroupSums[1 + (loopCounter * 2) + 1] = greaterIndex;
 //                loopCounter++;
 //            }
-
-
 
             allIntData[greaterIndex] += allIntData[lesserIndex];
         }
         indexMultiplierDueToDepth *= 2;
     }
 
-
-    perGroupSums[3] = allIntData[startingIndex + SHARED_DATA_SIZE - 1];
-    perGroupSums[4] = indexMultiplierDueToDepth;
-
     // only one thread should do these (prevents unnecessary writes)
     if (doubleGroupThreadIndex == 0)
     {
-        perGroupSums[gl_WorkGroupID.x] = allIntData[startingIndex + SHARED_DATA_SIZE - 1];
-        allIntData[startingIndex + SHARED_DATA_SIZE - 1] = 0;
+        perGroupSums[gl_WorkGroupID.x] = allIntData[allIntDataStartingIndex + SHARED_DATA_SIZE - 1];
+        allIntData[allIntDataStartingIndex + SHARED_DATA_SIZE - 1] = 0;
+//        perGroupSums[gl_WorkGroupID.x] = allIntData[SHARED_DATA_SIZE - 1];
+//        allIntData[SHARED_DATA_SIZE - 1] = 0;
     }
     indexMultiplierDueToDepth >>= 1;
-
-    perGroupSums[5] = indexMultiplierDueToDepth;
-
-
-    //perGroupSums[gl_LocalInvocationID.x + 10] += 1;
 
     for (int dataPairs = 1; dataPairs < SHARED_DATA_SIZE; dataPairs *= 2)
     {
         barrier();
-
-        
-        
-        
         
         if (gl_LocalInvocationID.x < dataPairs)
         {
-
-
-            //perGroupSums[gl_LocalInvocationID.x + 10] += 1;
-
-
-            uint lesserIndex = startingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-            uint greaterIndex = startingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
-
-
-//            if (doubleGroupThreadIndex == 0)
-//            {
-//                perGroupSums[(loopCounter * 2)] = lesserIndex;
-//                perGroupSums[(loopCounter * 2) + 1] = greaterIndex;
-//
-//                loopCounter++;
-//            }
-
+            uint lesserIndex = allIntDataStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            uint greaterIndex = allIntDataStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+//            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+//            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
             uint temp = allIntData[lesserIndex];
             allIntData[lesserIndex] = allIntData[greaterIndex];

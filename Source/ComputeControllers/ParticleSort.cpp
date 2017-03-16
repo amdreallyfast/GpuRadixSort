@@ -5,10 +5,11 @@
 
 #include "Include/SSBOs/PrefixSumSsbo.h"
 
-
-
-#include <array>
-
+#include <chrono>
+#include <algorithm>
+#include <iostream>
+using std::cout;
+using std::endl;
 
 
 // TODO: header
@@ -54,9 +55,6 @@ ParticleSort::~ParticleSort()
     delete _prefixSumSsbo;
 }
 
-
-#include <random>
-
 // TODO: header
 void ParticleSort::Sort(int numParticles)
 {
@@ -85,51 +83,91 @@ void ParticleSort::Sort(int numParticles)
     //                      = 1250
     // In this example, 512 threads (0 - 511) calculate the prefix sum for work group 0 (indices 0 - 1023), 512 threads (512 - 1023) calculate the pregix sum for work group 1 (indices 1024 - 2047), and 226 threads (1024 - 1249) calculate the prefix sum for work group 2 (indices 2048 - 2499).  The rest of the threads in work group 2 ((512 * 3) - 1250) = 286 threads (1250 - 1536) will have nothing to do and should simply return.
 
+    using namespace std::chrono;
+    // give the counters initial data
+    steady_clock::time_point start;
+    steady_clock::time_point end;
 
-
-
+    start = high_resolution_clock::now();
     glUseProgram(_parallelPrefixScanComputeProgramId);
 
     // TODO: replace 512 with a constant
-    int perGroupSumsSize = 512 * 2;
-    int intArrByteOffset = perGroupSumsSize * sizeof(unsigned int);
-    std::vector<unsigned int> dataToSum = { 0,1,0,0,1,0,1,0,1,0,0,1,1,0,0,1 };
-    int totalItems = perGroupSumsSize + dataToSum.size();
-    int bufferSizeBytes = totalItems * sizeof(unsigned int);
+    int threadsPerWorkGroup = 512;
+    int dataSizePerWorkGroup = threadsPerWorkGroup * 2;
+    int intArrByteOffset = dataSizePerWorkGroup * sizeof(unsigned int);
+    std::vector<unsigned int> dataToSum;
+    for (int i = 0; i < numParticles; i++)
+    {
+        // this will push back an alternating assortment of 0s and 1s
+        dataToSum.push_back(i % 2);
+    }
+    std::random_shuffle(dataToSum.begin(), dataToSum.end());
 
+    end = high_resolution_clock::now();
+    cout << "generating " << numParticles << " numbers: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
+
+    start = high_resolution_clock::now();
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, intArrByteOffset, dataToSum.size() * sizeof(unsigned int), dataToSum.data());
+    end = high_resolution_clock::now();
+    cout << "copying data: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
+
 
     // TODO: replace hard-coded 512 with a constant from a header/compute-kosher include file
-    int numWorkGroupsX = (numParticles / 512) + 1;
+    // Note: Divide by "data size per work group" + 1 because, if the number of items == "data size per work group", then numWorkGroupsX = (X/X) + 1 = 2.  This is a corner case, but it needs to be accounted for.
+    int numWorkGroupsX = (numParticles / (dataSizePerWorkGroup + 1)) + 1;
     int numWorkGroupsY = 1;
     int numWorkGroupsZ = 1;
 
     //unsigned int maxThreads = numParticles / 2;
-    unsigned int maxThreads = numWorkGroupsX * 512;
+    unsigned int maxThreads = numWorkGroupsX * threadsPerWorkGroup;
     glUniform1ui(_unifLocMaxThreadCount, maxThreads);
 
-
-
+    
+    start = high_resolution_clock::now();
     glDispatchCompute(numWorkGroupsX, numWorkGroupsY, numWorkGroupsZ);
     //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    end = high_resolution_clock::now();
+    cout << "running prefix scan with " << maxThreads << " threads over " << numWorkGroupsX << " work groups: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
 
+
+    //int totalItems = dataSizePerWorkGroup + dataToSum.size();
+    int totalItems = dataSizePerWorkGroup + (numWorkGroupsX * dataSizePerWorkGroup);
+    int bufferSizeBytes = totalItems * sizeof(unsigned int);
+
+    start = high_resolution_clock::now();
     void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
     std::vector<unsigned int> v(totalItems);
     memcpy(v.data(), bufferPtr, bufferSizeBytes);
+    end = high_resolution_clock::now();
+    cout << "copying data back: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
 
     // check the GPU's results
+    start = high_resolution_clock::now();
     unsigned int manualPrefixSum = 0;
     for (unsigned int prefixSumIndex = 1; prefixSumIndex < dataToSum.size(); prefixSumIndex++)
     {
-        unsigned int currentPrefixSum = v[perGroupSumsSize + prefixSumIndex];
-        manualPrefixSum += dataToSum[prefixSumIndex - 1];
+        // remember to account for the "per work group sums" that comes before the individual prefix scans
+        unsigned int currentPrefixSum = v[dataSizePerWorkGroup + prefixSumIndex];
+
+        if (prefixSumIndex % dataSizePerWorkGroup == 0)
+        {
+            // reset
+            manualPrefixSum = 0;
+        }
+        else
+        {
+            manualPrefixSum += dataToSum[prefixSumIndex - 1];
+        }
 
         if (currentPrefixSum != manualPrefixSum)
         {
             printf("");
         }
     }
+
+    end = high_resolution_clock::now();
+    cout << "verifying data: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
 
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 

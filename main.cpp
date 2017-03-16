@@ -219,8 +219,8 @@ void Init()
 
 
 
-    gpParticleSort = new ParticleSort(16);
-    gpParticleSort->Sort(16);
+    gpParticleSort = new ParticleSort(100000);
+    gpParticleSort->Sort(100000);
 
     printf("");
 
@@ -715,7 +715,7 @@ int main(int argc, char *argv[])
     glutInitContextProfile(GLUT_CORE_PROFILE);
 
     // enable this for automatic message reporting (see OpenGlErrorHandling.cpp)
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
     glutInitContextFlags(GLUT_DEBUG);
 #endif
