@@ -235,15 +235,23 @@ void ParticleSort::Sort(int /*numParticles*/)
     int numWorkGroupsY = 1;
     int numWorkGroupsZ = 1;
 
-    unsigned int maxThreads = CalculateMaxThreadCount(numWorkGroupsX);
-    glUniform1ui(_unifLocMaxThreadCount, CalculateMaxThreadCount(numWorkGroupsX));
-    glUniform1ui(_unifLocCalculateAll, 1);
-    
     start = high_resolution_clock::now();
+
+    // calculate all the prefix sums and fill out each work group's perGroupSums value
+    glUniform1ui(_unifLocMaxThreadCount, CalculateMaxThreadCount(numWorkGroupsX));
+    glUniform1ui(_unifLocCalculateAll, 1);    
     glDispatchCompute(numWorkGroupsX, numWorkGroupsY, numWorkGroupsZ);
+
+    // now run the prefix scan over the perGroupSums array
+    // Note: The perGroupSums array is only the size of 1 work group, so hard-code 1s.
+    glUniform1ui(_unifLocMaxThreadCount, WORK_GROUP_SIZE_X);
+    glUniform1ui(_unifLocCalculateAll, 0);
+    glDispatchCompute(1, 1, 1);
+     
+
     //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     end = high_resolution_clock::now();
-    cout << "running prefix scan with " << maxThreads << " threads over " << numWorkGroupsX << " work groups: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
+    cout << "running prefix scan with " << CalculateMaxThreadCount(numWorkGroupsX) << " threads over " << numWorkGroupsX << " work groups: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
 
 
     //int totalItems = dataSizePerWorkGroup + dataToSum.size();

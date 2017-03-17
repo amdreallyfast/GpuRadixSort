@@ -159,11 +159,7 @@ void CalculateAllPrefixSums()
 //        // still available.
 //        preGroupSums[gl_WorkGroupID.x] = fastTempArr[ITEMS_PER_WORK_GROUP - 1];
 //        
-//        // this is just part of the algorithm
-//        // Note: If the total data size does not evenly divide ITEMS_PER_WORK_GROUP, thenthe last 
-//        // group's fastTempArr won't be entirely full, the threads that deal with the latter 
-//        // part of the data will have been cut off at the start of main(), and this step will be 
-//        // useless.
+//        // this is just part of the algorithm; I don't have an intuitive explanation
 //        fastTempArr[ITEMS_PER_WORK_GROUP - 1] = 0;
 //    }
 //
@@ -177,7 +173,7 @@ void CalculateAllPrefixSums()
 //    // going down multiplies pair count in half with each level
 //    for (int dataPairs = 1; dataPairs < ITEMS_PER_WORK_GROUP); dataPairs *= 2)
 //    {
-//        // wair for the other threads in the group to catch up
+//        // wait for the other threads in the group to catch up
 //        barrier();
 //
 //        // once again, group thread 0 is always working, but the others may need to sit out for 
@@ -215,6 +211,49 @@ Creator:    John Cox, 3/16/2017
 ------------------------------------------------------------------------------------------------*/
 void PrefixSumOnPerGroupSums()
 {
+    // the perGroupSums array is only one work group's worth of data, so the starting index is 
+    // implicitly 0 and there is no need for a workGroupStartingIndex
+    uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
+
+    uint indexMultiplierDueToDepth = 1;
+    uint loopCounter = 0;
+    for (int dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
+    {
+        barrier();
+
+        if (gl_LocalInvocationID.x < dataPairs)
+        {
+            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+
+            perGroupSums[greaterIndex] += perGroupSums[lesserIndex];
+        }
+        indexMultiplierDueToDepth *= 2;
+    }
+
+    // only one thread should do these (prevents unnecessary writes)
+    if (doubleGroupThreadIndex == 0)
+    {
+        perGroupSums[ITEMS_PER_WORK_GROUP - 1] = 0;
+    }
+    indexMultiplierDueToDepth >>= 1;
+
+    for (int dataPairs = 1; dataPairs < ITEMS_PER_WORK_GROUP; dataPairs *= 2)
+    {
+        barrier();
+        
+        if (gl_LocalInvocationID.x < dataPairs)
+        {
+            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+
+            uint temp = perGroupSums[lesserIndex];
+            perGroupSums[lesserIndex] = perGroupSums[greaterIndex];
+            perGroupSums[greaterIndex] += temp;
+        }
+
+        indexMultiplierDueToDepth >>= 1;
+    }
 }
 
 
@@ -234,19 +273,17 @@ void main()
         return;
     }
 
-    CalculateAllPrefixSums();
-    //perGroupSums[0] = 37;
-//    if (uCalculateAll == 1)
-//    {
-//        // calculate the prefix sums for everyone and fill out the collection of per-work-group sums
-//        CalculateAllPrefixSums();
-//    }
-//    else
-//    {
-//        // calculate the prefix sums for the collection of per-work-group sums, turning this 
-//        // array from a collection of individual sums into a prefix sum array itself
-//        PrefixSumOnPerGroupSums();
-//    }
+    if (uCalculateAll == 1)
+    {
+        // calculate the prefix sums for everyone and fill out the collection of per-work-group sums
+        CalculateAllPrefixSums();
+    }
+    else
+    {
+        // calculate the prefix sums for the collection of per-work-group sums, turning this 
+        // array from a collection of individual sums into a prefix sum array itself
+        PrefixSumOnPerGroupSums();
+    }
 
     // done!
 }
