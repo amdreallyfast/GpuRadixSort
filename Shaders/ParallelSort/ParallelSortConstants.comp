@@ -6,6 +6,9 @@ Description:
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 
+// REQUIRES NumDataEntries.comp
+//  NUM_DATA_ENTRIES
+
 #ifndef PARALLEL_SORT_CONSTANTS_COMP
 #define PARALLEL_SORT_CONSTANTS_COMP
 

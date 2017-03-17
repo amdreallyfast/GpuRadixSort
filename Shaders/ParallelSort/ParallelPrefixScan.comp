@@ -16,29 +16,30 @@ Creator:    John Cox, 3/11/2017
 
 // REQUIRES Version.comp
 // REQUIRES ParallelSortConstants.comp
-//  WORK_GROUP_SIZE_X/Y/Z
-//  ITEMS_PER_WORK_GROUP
-//  
+// - WORK_GROUP_SIZE_X/Y/Z
+// - ITEMS_PER_WORK_GROUP
 // REQUIRES SsboBufferBindings.comp
-//  PREFIX_SCAN_BUFFER_BINDING
+// - PREFIX_SCAN_BUFFER_BINDING
+// REQUIRES PrefixScanBuffer.comp
 
 layout (local_size_x = WORK_GROUP_SIZE_X, local_size_y = 1, local_size_z = 1) in;
 
-/*------------------------------------------------------------------------------------------------
-Description:
-    This is the data that is being scanned AND that is being altered into a prefix sum.
-    See explanation of sizes in PrefixSumSsbo.
-Creator:    John Cox, 3/11/2017
-------------------------------------------------------------------------------------------------*/
-layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer PrefixScanBuffer
-//layout (std430) buffer PrefixScanBuffer
-{
-    uint perGroupSums[ITEMS_PER_WORK_GROUP];
-    uint allPrefixSums[];
-};
 
-// see explanation in ParticleSort.cpp, CalculateMaxThreadCount(...)
-uniform uint uMaxThreadCount;
+
+///*------------------------------------------------------------------------------------------------
+//Description:
+//    This is the data that is being scanned AND that is being altered into a prefix sum.
+//    See explanation of sizes in PrefixSumSsbo.
+//Creator:    John Cox, 3/11/2017
+//------------------------------------------------------------------------------------------------*/
+//layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer PrefixScanBuffer
+//{
+//    uint perGroupSums[ITEMS_PER_WORK_GROUP];
+//    uint allPrefixSums[];
+//};
+//
+//// see explanation in ParticleSort.cpp, CalculateMaxThreadCount(...)
+//uniform uint uMaxThreadCount;
 
 // create a shared memory buffer for fast memory operations (better than global), two items per 
 // thread, and initialize to 0
@@ -261,17 +262,22 @@ uniform uint uCalculateAll;
 
 /*------------------------------------------------------------------------------------------------
 Description:
+    Determine whether to run the parallel prefix scan algorithm over all the data entries or 
+    over the per-work-group sums.
 Parameters: None
 Returns:    None
 Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
 void main()
 {
-    if (gl_GlobalInvocationID.x >= uMaxThreadCount)
-    {
-        // nothing for this thread to do
-        return;
-    }
+    // this algorithm is closely tied to the size of a work group, and when setting up for it care is taken to make sure that all threads within a work group have something to do, so as long as care keeps being taken to make sure that all threads are busy, then there is no need for a "max thread count" check or something like that
+
+
+//    if (gl_GlobalInvocationID.x >= uMaxThreadCount)
+//    {
+//        // nothing for this thread to do
+//        return;
+//    }
 
     if (uCalculateAll == 1)
     {

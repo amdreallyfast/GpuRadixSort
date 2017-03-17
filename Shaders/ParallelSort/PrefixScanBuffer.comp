@@ -1,0 +1,17 @@
+// REQUIRES SsboBufferBindings.comp
+//  PREFIX_SCAN_BUFFER_BINDING
+// REQUIRES ParallelSortConstants.comp
+//  ITEMS_PER_WORK_GROUP
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    This is the data that is being scanned AND that is being altered into a prefix sum.
+    See explanation of sizes in PrefixSumSsbo.
+Creator:    John Cox, 3/11/2017
+------------------------------------------------------------------------------------------------*/
+layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer PrefixScanBuffer
+{
+    uint perGroupSums[ITEMS_PER_WORK_GROUP];
+    uint allPrefixSums[];
+};
+

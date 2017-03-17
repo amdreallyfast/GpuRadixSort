@@ -200,25 +200,20 @@
     <ClInclude Include="Shaders\ShaderStorage.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\ComputeHeaders\ParallelSortConstants.comp" />
     <None Include="Shaders\ComputeHeaders\SsboBufferBindings.comp" />
     <None Include="Shaders\ComputeHeaders\Version.comp" />
     <None Include="Shaders\FreeType.frag" />
     <None Include="Shaders\FreeType.vert" />
-    <None Include="Shaders\Geometry.frag" />
-    <None Include="Shaders\Geometry.vert" />
-    <None Include="Shaders\MortonCodePrefixSums.comp" />
-    <None Include="Shaders\ParallelPrefixScan.comp" />
-    <None Include="Shaders\ParticleRender.frag" />
-    <None Include="Shaders\ParticleRender.vert" />
-    <None Include="Shaders\ParticleReset.comp" />
-    <None Include="Shaders\ParticleScanAndSort.comp" />
-    <None Include="Shaders\ParticleSortPrep.comp" />
-    <None Include="Shaders\ParticleUpdate.comp" />
-    <None Include="Shaders\QuadTreeGenerateGeometry.comp" />
-    <None Include="Shaders\QuadTreeParticleCollisions.comp" />
-    <None Include="Shaders\QuadTreePopulate.comp" />
-    <None Include="Shaders\QuadTreeReset.comp" />
+    <None Include="Shaders\OriginalDataBuffer.comp" />
+    <None Include="Shaders\ParallelSort\DataToIntermediateDataForSorting.comp" />
+    <None Include="Shaders\ParallelSort\GetNextBitForPrefixSums.comp" />
+    <None Include="Shaders\ParallelSort\IntermediateSortBuffers.comp" />
+    <None Include="Shaders\ParallelSort\MortonCodePrefixSums.comp" />
+    <None Include="Shaders\ParallelSort\ParallelPrefixScan.comp" />
+    <None Include="Shaders\ParallelSort\ParallelSortConstants.comp" />
+    <None Include="Shaders\ParallelSort\PrefixScanBuffer.comp" />
+    <None Include="Shaders\ParallelSort\SortDataWithSortedIntermediateData.comp" />
+    <None Include="Shaders\ParallelSort\SortIntermediateDataUsingPrefixSums.comp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

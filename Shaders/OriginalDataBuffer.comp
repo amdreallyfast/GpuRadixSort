@@ -1,0 +1,42 @@
+// REQUIRES SsboBufferBindings.comp
+//  PREFIX_SCAN_BUFFER_BINDING
+
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    For this demo, the "original data" structure is simply an integer.  But the framework exists 
+    for sorting whatever.
+
+    Just make sure that this structure jives with the structure that OriginalDataSsbo uses.
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/
+struct OriginalDataStructure
+{
+    int _value;
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Data size is set by the user.  I can't think of anything special to say about this buffer.
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/
+layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer OriginalDataBuffer
+{
+    OriginalDataStructure AllOriginalData[];
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    At the end of the parallel radix sort, the original data needs to be sorted.  Doing this in 
+    parallel requires making a copy of the original data and then writing back to wherever in 
+    the original buffer.  This buffer serves that purpose.
+
+    Note: It should be in its own buffer so that it can easily be used with 
+    glCopyBufferSubData(...).
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/
+layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer OriginalDataCopyBuffer
+{
+    OriginalDataStructure AllOriginalDataCopy[];
+};
+

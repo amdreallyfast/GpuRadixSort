@@ -23,7 +23,7 @@ private:
     // TODO: make this a shared pointer
     PrefixSumSsbo *_prefixSumSsbo;
     unsigned int _parallelPrefixScanComputeProgramId;
-    int _unifLocMaxThreadCount;
+    //int _unifLocMaxThreadCount;
     int _unifLocCalculateAll;
 
 };

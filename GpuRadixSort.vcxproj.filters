@@ -189,6 +189,9 @@
     <Filter Include="Shaders\ComputeHeaders">
       <UniqueIdentifier>{4a9181d3-a159-42fa-8a8f-939c4cebf171}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\ParallelSort">
+      <UniqueIdentifier>{4092c9e6-ca98-4729-9404-0e9fde5d45c5}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\FreeType.frag">
@@ -197,56 +200,41 @@
     <None Include="Shaders\FreeType.vert">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="Shaders\Geometry.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\Geometry.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\ParticleRender.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\ParticleRender.vert">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\ParticleReset.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\ParticleSortPrep.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\ParticleUpdate.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\QuadTreeGenerateGeometry.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\QuadTreeParticleCollisions.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\QuadTreePopulate.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\QuadTreeReset.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\MortonCodePrefixSums.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\ParticleScanAndSort.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\ParallelPrefixScan.comp">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="Shaders\ComputeHeaders\ParallelSortConstants.comp">
-      <Filter>Shaders\ComputeHeaders</Filter>
-    </None>
     <None Include="Shaders\ComputeHeaders\SsboBufferBindings.comp">
       <Filter>Shaders\ComputeHeaders</Filter>
     </None>
     <None Include="Shaders\ComputeHeaders\Version.comp">
       <Filter>Shaders\ComputeHeaders</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\GetNextBitForPrefixSums.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\MortonCodePrefixSums.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\ParallelPrefixScan.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\SortDataWithSortedIntermediateData.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\SortIntermediateDataUsingPrefixSums.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\DataToIntermediateDataForSorting.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\PrefixScanBuffer.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\ParallelSortConstants.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\OriginalDataBuffer.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\IntermediateSortBuffers.comp">
+      <Filter>Shaders\ParallelSort</Filter>
     </None>
   </ItemGroup>
 </Project>

@@ -1,0 +1,76 @@
+// REQUIRES SsboBufferBindings.comp
+//  PREFIX_SCAN_BUFFER_BINDING
+
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    The meat of the sorting algorithm comes down to the prefix scan, which is doing a lot of 
+    memory reads and writes and so much be a simple array of integers for best performance.  The 
+    data that may need to be sorted though may not be a simple set of integers, but may be 
+    structures that need to be sorted according to a particular field (ex: particles sorted by 
+    position along a Z-order curve).  The parallel sort runs through the radix sort algorithm, 
+    which is tailor-made for parallel computing, but has the side effect of doing an 
+    intermediate sort after each prefix scan, which means more memory reads and writes on top of 
+    the prefix scan.
+
+    Enter the intermediate structure.  This is a 2-word structure that contains:
+    (1) the data that the radix sort will sort by
+    (2) the original index of the thing that needs to be sorted.
+
+    This info is filled out prior to sorting in DataToIntermediateDataForSorting.comp.
+    It is read one bit at a time in each loop of the radix sort in GetNextBitForPrefixSums.comp.
+    It is shuffled around in SortIntermediateDataUsingPrefixSums.comp in each radix sort loop.
+    After the radix sorting, it used to sort the original data in 
+    SortDataWithSortedIntermediateData.comp.
+Creator:    John Cox, 3/17/2017
+------------------------------------------------------------------------------------------------*/
+struct IntermediateData
+{
+    uint _data;
+    uint _globalIndexOfOriginalData;
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Should be the same size as the number of data entries used in PrefixScanBuffer * 2.
+
+    The structures will need to be moved around in parallel after each prefix scan over the 
+    course of the parallel radix sorting (buffer 1 to buffer 2, then buffer 2 to buffer 1, then 
+    buffer 1 to buffer 2, etc.).  
+
+Creator:    John Cox, 3/17/2017
+------------------------------------------------------------------------------------------------*/
+layout (std430, binding = INTERMEDIATE_SORT_FIRST_BUFFER_BINDING) buffer IntermediateSortFirstBuffer
+{
+    IntermediateData AllIntermediateDataFirstBuffer[];
+};
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    
+    Should be the same size as the number of data entries used in PrefixScanBuffer.  
+
+    I could have made a single buffer that was twice the size, and while it wouldn't have been 
+    much effort to calculate the offset into the "second" buffer, the bigger problem is that 
+    SortIntermediateDataUsingPrefixSums.comp would have required the calculated number of data 
+    entries that PrefixScanBuffer uses in order to calculate that offset, but calculating that 
+    requires some special handling to make sure data sets that aren't evenly divisible by the 
+    number of items that each work group can handle all get examined properly, and so the number 
+    of data entries that the user wants AND the number of data entries that PrefixScanBuffer 
+    uses would need to be calculated as #defines in compute headers, and I didn't want to deal 
+    with that.
+    
+    The rabbit hole goes deep.  I'll go the easier route and make 2 buffers.
+
+    I'll have to deal with some extra hassle of having A/B names for everything relating to the 
+    buffers, but that is easier than trying to get the number of data entry items that 
+    PrefixScanBuffer uses into a compute shader.
+Creator:    John Cox, 3/11/2017
+------------------------------------------------------------------------------------------------*/
+layout (std430, binding = INTERMEDIATE_SORT_SECOND_BUFFER_BINDING) buffer IntermediateSortSecondBuffer
+{
+    IntermediateData AllIntermediateDataSecondBuffer[];
+};
+
+// use a bool (0 == false, otherwise true)
+uniform uint uReadFromFirstBuffer;

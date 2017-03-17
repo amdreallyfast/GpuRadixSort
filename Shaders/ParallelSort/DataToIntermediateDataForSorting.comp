@@ -1,0 +1,30 @@
+// REQUIRES Version.comp
+// REQUIRES ParallelSortConstants.comp
+// - WORK_GROUP_SIZE_X/Y/Z
+// - ITEMS_PER_WORK_GROUP
+// REQUIRES SsboBufferBindings.comp
+// - PREFIX_SCAN_BUFFER_BINDING
+// REQUIRES IntermediateSortBuffer.comp
+// REQUIRES PrefixScanBuffer.comp
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Adapt to whatever needs to be sorted as necessary.
+
+    The original data that needs to be sorted may not be a simple set of integers, but rather 
+    structures that have integers, floatas, and vec4s and are very unwieldy to move around after 
+    every prefix scan during the radix sort.  This shader takes the original data and fills out 
+    a simple, intermediate structure that is much more easily moved around.
+Parameters: None
+Returns:    None
+Creator:    John Cox, 3/11/2017
+------------------------------------------------------------------------------------------------*/
+void main()
+{
+    // the number of threads is managed by ParallelSort::Sort(...) to be the same as the number of data entries that need to be filled out in the PrefixScanBuffer, so if the thread ID is greater than the number of user-provided data entries, padd out the PrefixScanBuffer entries with 0s
+    if 
+
+
+    // make sure that the uniform uReadFromFirstBuffer in IntermediateSortBuffer is true in the 
+    // compute controller ParallelSort
+}
