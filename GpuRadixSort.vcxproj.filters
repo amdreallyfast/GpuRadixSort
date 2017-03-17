@@ -5,23 +5,8 @@
     <ClCompile Include="Shaders\ShaderStorage.cpp">
       <Filter>Shaders</Filter>
     </ClCompile>
-    <ClCompile Include="Source\MinMaxVelocity.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
     <ClCompile Include="Source\OpenGlErrorHandling.cpp">
       <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\RandomToast.cpp">
-      <Filter>Source</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\SSBOs\ParticleSsbo.cpp">
-      <Filter>Source\SSBOs</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\SSBOs\PolygonSsbo.cpp">
-      <Filter>Source\SSBOs</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\SSBOs\QuadTreeNodeSsbo.cpp">
-      <Filter>Source\SSBOs</Filter>
     </ClCompile>
     <ClCompile Include="Source\SSBOs\SsboBase.cpp">
       <Filter>Source\SSBOs</Filter>
@@ -35,33 +20,6 @@
     <ClCompile Include="Source\RenderFrameRate\Stopwatch.cpp">
       <Filter>Source\RenderFrameRate</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Particles\ParticleEmitterBar.cpp">
-      <Filter>Source\Particles</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Particles\ParticleEmitterPoint.cpp">
-      <Filter>Source\Particles</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Particles\ParticleQuadTree.cpp">
-      <Filter>Source\Particles</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ComputeControllers\ParticleReset.cpp">
-      <Filter>Source\ComputeControllers</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ComputeControllers\ParticleUpdate.cpp">
-      <Filter>Source\ComputeControllers</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ComputeControllers\QuadTreeGenerateGeometry.cpp">
-      <Filter>Source\ComputeControllers</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ComputeControllers\QuadTreeParticleCollisions.cpp">
-      <Filter>Source\ComputeControllers</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ComputeControllers\QuadTreePopulate.cpp">
-      <Filter>Source\ComputeControllers</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\ComputeControllers\QuadTreeReset.cpp">
-      <Filter>Source\ComputeControllers</Filter>
-    </ClCompile>
     <ClCompile Include="Source\SSBOs\PrefixSumSsbo.cpp">
       <Filter>Source\SSBOs</Filter>
     </ClCompile>
@@ -73,47 +31,8 @@
     <ClInclude Include="Shaders\ShaderStorage.h">
       <Filter>Shaders</Filter>
     </ClInclude>
-    <ClInclude Include="Include\MinMaxVelocity.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\MyVertex.h">
-      <Filter>Include</Filter>
-    </ClInclude>
     <ClInclude Include="Include\OpenGlErrorHandling.h">
       <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\PolygonFace.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\RandomToast.h">
-      <Filter>Include</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\ComputeControllers\ParticleReset.h">
-      <Filter>Include\ComputeControllers</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\ComputeControllers\ParticleUpdate.h">
-      <Filter>Include\ComputeControllers</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\ComputeControllers\QuadTreeGenerateGeometry.h">
-      <Filter>Include\ComputeControllers</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\ComputeControllers\QuadTreeParticleCollisions.h">
-      <Filter>Include\ComputeControllers</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\ComputeControllers\QuadTreePopulate.h">
-      <Filter>Include\ComputeControllers</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\ComputeControllers\QuadTreeReset.h">
-      <Filter>Include\ComputeControllers</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\SSBOs\ParticleSsbo.h">
-      <Filter>Include\SSBOs</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\SSBOs\PolygonSsbo.h">
-      <Filter>Include\SSBOs</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\SSBOs\QuadTreeNodeSsbo.h">
-      <Filter>Include\SSBOs</Filter>
     </ClInclude>
     <ClInclude Include="Include\SSBOs\SsboBase.h">
       <Filter>Include\SSBOs</Filter>
@@ -124,24 +43,6 @@
     <ClInclude Include="Include\RenderFrameRate\Stopwatch.h">
       <Filter>Include\RenderFrameRate</Filter>
     </ClInclude>
-    <ClInclude Include="Include\Particles\IParticleEmitter.h">
-      <Filter>Include\Particles</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\Particles\Particle.h">
-      <Filter>Include\Particles</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\Particles\ParticleEmitterBar.h">
-      <Filter>Include\Particles</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\Particles\ParticleEmitterPoint.h">
-      <Filter>Include\Particles</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\Particles\ParticleQuadTree.h">
-      <Filter>Include\Particles</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\Particles\ParticleQuadTreeNode.h">
-      <Filter>Include\Particles</Filter>
-    </ClInclude>
     <ClInclude Include="Include\RenderFrameRate\FreeTypeEncapsulated.h">
       <Filter>Include\RenderFrameRate</Filter>
     </ClInclude>
@@ -149,6 +50,12 @@
       <Filter>Include\ComputeControllers</Filter>
     </ClInclude>
     <ClInclude Include="Include\SSBOs\PrefixSumSsbo.h">
+      <Filter>Include\SSBOs</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\SSBOs\OriginalDataSsbo.h">
+      <Filter>Include\SSBOs</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\SSBOs\OriginalDataCopySsbo.h">
       <Filter>Include\SSBOs</Filter>
     </ClInclude>
   </ItemGroup>
@@ -165,9 +72,6 @@
     <Filter Include="Include\ComputeControllers">
       <UniqueIdentifier>{bc6dc51e-3dad-4527-898b-7fe365093c28}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Include\Particles">
-      <UniqueIdentifier>{1e630952-25a6-40bf-8c52-a05a527ccd3d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Include\RenderFrameRate">
       <UniqueIdentifier>{948f0825-f7bd-4e99-9ff8-44ea962a9fe1}</UniqueIdentifier>
     </Filter>
@@ -182,9 +86,6 @@
     </Filter>
     <Filter Include="Source\RenderFrameRate">
       <UniqueIdentifier>{876335fb-702c-4383-b253-b2d2d534542d}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Particles">
-      <UniqueIdentifier>{789f16aa-291c-4f62-b18d-76fa2531514f}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shaders\ComputeHeaders">
       <UniqueIdentifier>{4a9181d3-a159-42fa-8a8f-939c4cebf171}</UniqueIdentifier>

@@ -1,28 +1,27 @@
 #pragma once
 
+#include <chrono>
+
 /*------------------------------------------------------------------------------------------------
 Description:
-    Call Init() to have it read the CPU frequency, then Start() to have it register a starting 
-    time.  After that, Lap() will get you the number of seconds elapsed since Start() was called.
+    Uses C++11's std::chrono library to read precise time and provide some convenient 
+    time-related services.
 
-    This class was ported in from my first game engine that I built while going through some 
-    tutorials on the topic.  I have no idea how old it is, but I think that it is from 2014 or 
-    2015, which is when I was still learning graphical programming and early stuff on game 
-    engines.
-Creator:    John Cox (??-2015)
+    Delta times are in fractions of a second (fraction can be greater than 1).
+Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 class Stopwatch
 {
 public:
     Stopwatch();
-    void Init();
 
-    // delta time is in seconds
+    // also serves as "restart"
     void Start();
+
     double Lap();
     double TotalTime();
-    void Reset();
 private:
-    bool _haveInitialized;
+    std::chrono::steady_clock::time_point _startTime;
+    std::chrono::steady_clock::time_point _lastLapTime;
 };
 

@@ -60,6 +60,20 @@ SsboBase::~SsboBase()
 
 /*------------------------------------------------------------------------------------------------
 Description:
+    Does nothing.  There are several SSBOs required as part of the parallel sorting, and those 
+    SSBO don't do anything with rendering, so let this be a virtual method, not pure virtual.
+Parameters: 
+    Ignored
+Returns:    None
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/
+void SsboBase::ConfigureRender(unsigned int, unsigned int)
+{
+    // nothing
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
     A simple getter for the vertex array object ID.
 Parameters: None
 Returns:    

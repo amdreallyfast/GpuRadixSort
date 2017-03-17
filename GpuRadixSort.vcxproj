@@ -148,54 +148,23 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Shaders\ShaderStorage.cpp" />
-    <ClCompile Include="Source\ComputeControllers\ParticleReset.cpp" />
     <ClCompile Include="Source\ComputeControllers\ParticleSort.cpp" />
-    <ClCompile Include="Source\ComputeControllers\ParticleUpdate.cpp" />
-    <ClCompile Include="Source\ComputeControllers\QuadTreeGenerateGeometry.cpp" />
-    <ClCompile Include="Source\ComputeControllers\QuadTreeParticleCollisions.cpp" />
-    <ClCompile Include="Source\ComputeControllers\QuadTreePopulate.cpp" />
-    <ClCompile Include="Source\ComputeControllers\QuadTreeReset.cpp" />
-    <ClCompile Include="Source\MinMaxVelocity.cpp" />
     <ClCompile Include="Source\OpenGlErrorHandling.cpp" />
-    <ClCompile Include="Source\Particles\ParticleEmitterBar.cpp" />
-    <ClCompile Include="Source\Particles\ParticleEmitterPoint.cpp" />
-    <ClCompile Include="Source\Particles\ParticleQuadTree.cpp" />
-    <ClCompile Include="Source\RandomToast.cpp" />
     <ClCompile Include="Source\RenderFrameRate\FreeTypeAtlas.cpp" />
     <ClCompile Include="Source\RenderFrameRate\FreeTypeEncapsulated.cpp" />
     <ClCompile Include="Source\RenderFrameRate\Stopwatch.cpp" />
-    <ClCompile Include="Source\SSBOs\ParticleSsbo.cpp" />
-    <ClCompile Include="Source\SSBOs\PolygonSsbo.cpp" />
     <ClCompile Include="Source\SSBOs\PrefixSumSsbo.cpp" />
-    <ClCompile Include="Source\SSBOs\QuadTreeNodeSsbo.cpp" />
     <ClCompile Include="Source\SSBOs\SsboBase.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Include\ComputeControllers\ParticleReset.h" />
     <ClInclude Include="Include\ComputeControllers\ParticleSort.h" />
-    <ClInclude Include="Include\ComputeControllers\ParticleUpdate.h" />
-    <ClInclude Include="Include\ComputeControllers\QuadTreeGenerateGeometry.h" />
-    <ClInclude Include="Include\ComputeControllers\QuadTreeParticleCollisions.h" />
-    <ClInclude Include="Include\ComputeControllers\QuadTreePopulate.h" />
-    <ClInclude Include="Include\ComputeControllers\QuadTreeReset.h" />
-    <ClInclude Include="Include\MinMaxVelocity.h" />
-    <ClInclude Include="Include\MyVertex.h" />
     <ClInclude Include="Include\OpenGlErrorHandling.h" />
-    <ClInclude Include="Include\Particles\IParticleEmitter.h" />
-    <ClInclude Include="Include\Particles\Particle.h" />
-    <ClInclude Include="Include\Particles\ParticleEmitterBar.h" />
-    <ClInclude Include="Include\Particles\ParticleEmitterPoint.h" />
-    <ClInclude Include="Include\Particles\ParticleQuadTree.h" />
-    <ClInclude Include="Include\Particles\ParticleQuadTreeNode.h" />
-    <ClInclude Include="Include\PolygonFace.h" />
-    <ClInclude Include="Include\RandomToast.h" />
     <ClInclude Include="Include\RenderFrameRate\FreeTypeAtlas.h" />
     <ClInclude Include="Include\RenderFrameRate\FreeTypeEncapsulated.h" />
     <ClInclude Include="Include\RenderFrameRate\Stopwatch.h" />
-    <ClInclude Include="Include\SSBOs\ParticleSsbo.h" />
-    <ClInclude Include="Include\SSBOs\PolygonSsbo.h" />
+    <ClInclude Include="Include\SSBOs\OriginalDataCopySsbo.h" />
+    <ClInclude Include="Include\SSBOs\OriginalDataSsbo.h" />
     <ClInclude Include="Include\SSBOs\PrefixSumSsbo.h" />
-    <ClInclude Include="Include\SSBOs\QuadTreeNodeSsbo.h" />
     <ClInclude Include="Include\SSBOs\SsboBase.h" />
     <ClInclude Include="Shaders\ShaderStorage.h" />
   </ItemGroup>

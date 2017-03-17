@@ -16,8 +16,7 @@ public:
 
     // derived class needs customized Init(...) function to initialize member values
 
-    virtual void ConfigureCompute(unsigned int computeProgramId, const std::string &bufferNameInShader) = 0;
-    virtual void ConfigureRender(unsigned int renderProgramId, unsigned int drawStyle) = 0;
+    virtual void ConfigureRender(unsigned int renderProgramId, unsigned int drawStyle);
 
     unsigned int VaoId() const;
     unsigned int BufferId() const;
