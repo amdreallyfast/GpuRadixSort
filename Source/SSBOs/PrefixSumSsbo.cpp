@@ -116,7 +116,7 @@ Parameters:
 Returns:    None
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
-PrefixSumSsbo::PrefixSumSsbo(int numDataEntries) :
+PrefixSumSsbo::PrefixSumSsbo(unsigned int numDataEntries) :
     SsboBase(),  // generate buffers
     _numPerGroupPrefixSums(0),
     _numDataEntries(0)
@@ -142,15 +142,12 @@ PrefixSumSsbo::PrefixSumSsbo(int numDataEntries) :
     // the std::vector<...>(...) constructor will set everything to 0
     std::vector<unsigned int> v(_numPerGroupPrefixSums + _numDataEntries);
 
-    // no data right now
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bufferId);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, v.size() * sizeof(unsigned int), v.data(), GL_DYNAMIC_DRAW);
-
     // now bind this new buffer to the dedicated buffer binding location
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bufferId);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PREFIX_SCAN_BUFFER_BINDING, _bufferId);
 
-    // cleanup
+    // and fill it with 0s
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bufferId);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, v.size() * sizeof(unsigned int), v.data(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 

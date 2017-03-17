@@ -153,6 +153,10 @@
     <ClCompile Include="Source\RenderFrameRate\FreeTypeAtlas.cpp" />
     <ClCompile Include="Source\RenderFrameRate\FreeTypeEncapsulated.cpp" />
     <ClCompile Include="Source\RenderFrameRate\Stopwatch.cpp" />
+    <ClCompile Include="Source\SSBOs\IntermediateDataFirstBuffer.cpp" />
+    <ClCompile Include="Source\SSBOs\IntermediateDataSecondBuffer.cpp" />
+    <ClCompile Include="Source\SSBOs\OriginalDataCopySsbo.cpp" />
+    <ClCompile Include="Source\SSBOs\OriginalDataSsbo.cpp" />
     <ClCompile Include="Source\SSBOs\PrefixSumSsbo.cpp" />
     <ClCompile Include="Source\SSBOs\SsboBase.cpp" />
   </ItemGroup>
@@ -162,6 +166,10 @@
     <ClInclude Include="Include\RenderFrameRate\FreeTypeAtlas.h" />
     <ClInclude Include="Include\RenderFrameRate\FreeTypeEncapsulated.h" />
     <ClInclude Include="Include\RenderFrameRate\Stopwatch.h" />
+    <ClInclude Include="Include\SSBOs\IntermediateData.h" />
+    <ClInclude Include="Include\SSBOs\IntermediateDataFirstBuffer.h" />
+    <ClInclude Include="Include\SSBOs\IntermediateDataSecondBuffer.h" />
+    <ClInclude Include="Include\SSBOs\OriginalData.h" />
     <ClInclude Include="Include\SSBOs\OriginalDataCopySsbo.h" />
     <ClInclude Include="Include\SSBOs\OriginalDataSsbo.h" />
     <ClInclude Include="Include\SSBOs\PrefixSumSsbo.h" />

@@ -4,8 +4,10 @@
 // - ITEMS_PER_WORK_GROUP
 // REQUIRES SsboBufferBindings.comp
 // - PREFIX_SCAN_BUFFER_BINDING
+// REQUIRES OriginalDataBuffer.comp
 // REQUIRES IntermediateSortBuffer.comp
-// REQUIRES PrefixScanBuffer.comp
+
+uniform uint uIntermediateBufferSize;
 
 /*------------------------------------------------------------------------------------------------
 Description:
@@ -21,10 +23,30 @@ Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
 void main()
 {
-    // the number of threads is managed by ParallelSort::Sort(...) to be the same as the number of data entries that need to be filled out in the PrefixScanBuffer, so if the thread ID is greater than the number of user-provided data entries, padd out the PrefixScanBuffer entries with 0s
-    if 
+    // Note: The number of items in the IntermediateSortBuffers is equivalent to the number of 
+    // items in the PrefixScanBuffer, which will likely exceed the size of the user-provided 
+    // data.  The number of threads is managed by ParallelSort::Sort(...) to be the same as the 
+    // number of data entries that need to be filled out in the PrefixScanBuffer, so if the 
+    // thread ID is greater than the number of user-provided data entries, pad out the 
+    // IntermediateData with values of max int.  Do this instead of padding with 0s because the 
+    // sorting will put items with the smallest value first, but entries that don't refer to any 
+    // real data should be put at the back.  
+
+    IntermediateData newThing;
+    uint index = gl_GlobalInvocationID.x;
+    newThing._globalIndexOfOriginalData = index;
+
+    if (index < uIntermediateBufferSize)
+    {
+        newThing._data = AllOriginalData[index]._value;
+    }
+    else
+    {
+        newThing._data = 0xffffffff;
+    }
+
+    AllIntermediateDataFirstBuffer[index] = newThing;
 
 
-    // make sure that the uniform uReadFromFirstBuffer in IntermediateSortBuffer is true in the 
-    // compute controller ParallelSort
+    // make sure that the uniform uReadFromFirstBuffer in IntermediateSortBuffer is 1 
 }
