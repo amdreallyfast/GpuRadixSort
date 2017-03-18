@@ -26,14 +26,14 @@ Description:
     though, so data set sizes often don't divide evenly by a work group size (256/512/etc.).  
 
     Solution: Make the variable data set sizes work with the algorithm's reliance on a power of 
-    2 by padding out the last work group's data set with 0s, and then let the full number of 
-    threads per work group scan the data.  See PrefixSumSsbo for how it pads 0s onto the end so 
-    that the last work group can run a full complement of threads.
+    2 by using maximum int values in the excess data.  This will make the radix sort see 1s
+    in every bit position and thus sort the excess data to the back.  Then the non-excess data 
+    can be accessed using the same indices as the original data.
 
-    Is this wasting threads?  A little.  Only the last work group's data will be padded with 
-    zeros, and in a large data set (100,000+) there will be dozens of work groups, if not 
-    hundreds, so I won't concern myself with trying to optimize that last group's threads.  It 
-    is easier to just provide it with 0s to chew on.  Like hay for horses.  It's cheap.
+    Is this wasting threads?  A little.  Only the last work group's data will be padded, and in 
+    a large data set (100,000+) there will be dozens of work groups, if not hundreds, so I won't 
+    concern myself with trying to optimize that last group's threads.  It is easier to just pad 
+    the data and give the threads something to chew on.  Like hay for horses.  It's cheap.
 
     In the following examples, work group size = 512, so 
     ITEMS_PER_WORK_GROUP = work group size * 2 = 1024.
@@ -51,8 +51,7 @@ Description:
                         = 512 (threads 0 - 511)
     In this example, there are only 42 items worth looking at, so only 21 threads (0 - 20) will 
     be busy doing something useful, but to make the thread count cutoff easier to calculate, the 
-    full work group complement of threads will be allowed to run.  The excess data is expected to
-    be filled with 0s.
+    full work group complement of threads will be allowed to run.  
 
     Ex 2: data size = 1024
     num work groups = (1024 / ((512 * 2) + 1)) + 1
@@ -97,7 +96,8 @@ Description:
     max thread count    = 98 * 512
                         = 50176 (threads 0 - 50175)
     In this example there are 352 excess items allocated, which means 176 threads that are 
-    dealing with nothing but 0s.  This is a pittance compared to the total data size.
+    dealing with dummy data that was provided to pad out the data set to the size of a full work 
+    group.  This is a pittance compared to the total thread count.
 Parameters: 
     numWorkGroups   Num X work groups.  Y and Z are always 1.
 Returns:    
@@ -193,7 +193,6 @@ unsigned int PrefixSumSsbo::NumPerGroupPrefixSums() const
 Description:
     Returns the number of integers that have been allocated for the AllPrefixSums array.  The 
     constructor ensures that there are enough entries for every item to be part of a work group.  
-    Extra spaces were padded with 0s.
 Parameters: None
 Returns:    
     See Description.

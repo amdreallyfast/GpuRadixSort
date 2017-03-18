@@ -9,13 +9,17 @@ Description:
     function as the debug callback.  If an error or any OpenGL message in general pops up, this
     prints it to stderr.  I can turn it on and off by enabling and disabling the "#define DEBUG" 
     statement in main(...).
+
+    The function type (CODEGEN_FUNCPTR) must be the same function type as other OpenGL 
+    functions.  For Windows, that is APIENTRY.  For Linux, it isn't.  I don't know more than 
+    that.
 Parameters:
     Unknown.  The function pointer is provided to glDebugMessageCallbackARB(...), and that
     function is responsible for calling this one as it sees fit.
 Returns:    None
 Creator:    John Cox (2014)
 ------------------------------------------------------------------------------------------------*/
-void APIENTRY DebugFunc(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+void CODEGEN_FUNCPTR DebugFunc(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
     const GLchar* message, const GLvoid* userParam)
 {
     std::string srcName;
@@ -58,6 +62,7 @@ void APIENTRY DebugFunc(GLenum source, GLenum type, GLuint id, GLenum severity, 
         break;
     }
 
+    //??the heck is id??
     fprintf(stderr, "DebugFunc: length = '%d', id = '%u', userParam = '%x'\n", length, id, (unsigned int)userParam);
     fprintf(stderr, "%s from %s,\t%s priority\nMessage: %s\n",
         errorType.c_str(), srcName.c_str(), typeSeverity.c_str(), message);
