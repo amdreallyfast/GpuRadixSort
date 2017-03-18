@@ -4,6 +4,7 @@
 
 #include "Shaders/ParallelSort/ParallelSortConstants.comp"
 #include "Shaders/ComputeHeaders/SsboBufferBindings.comp"
+#include "Shaders/ComputeHeaders/UniformLocations.comp"
 
 #include <vector>
 
@@ -14,7 +15,7 @@ Description:
 
     This algorithm has each thread working on 2 data items, so the usual uMaxDataCount uniform 
     doesn't have much use as a thread check, but a "max thread count" does.  This value is 
-    determined in ParticleSort::Sort().  
+    determined in ParallelSort::Sort().  
 
     "Max thread count" = num work groups * threads per work group
 
@@ -145,6 +146,8 @@ PrefixSumSsbo::PrefixSumSsbo(unsigned int numDataEntries) :
     // now bind this new buffer to the dedicated buffer binding location
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PREFIX_SCAN_BUFFER_BINDING, _bufferId);
 
+    glUniform1ui(UNIFORM_LOCATION_ALL_PREFIX_SUMS_SIZE, _numDataEntries);
+
     // and fill it with 0s
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bufferId);
     glBufferData(GL_SHADER_STORAGE_BUFFER, v.size() * sizeof(unsigned int), v.data(), GL_DYNAMIC_DRAW);
@@ -155,7 +158,7 @@ PrefixSumSsbo::PrefixSumSsbo(unsigned int numDataEntries) :
 Description:
     Returns the number of integers that have been allocated for the PerGroupSums array.  The 
     constructor ensures that this is the size of 1, and only 1, work group's worth of data for 
-    the perGroupSums array.
+    the PerGroupSums array.
 Parameters: None
 Returns:    
     See Description.

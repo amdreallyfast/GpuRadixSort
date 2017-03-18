@@ -23,9 +23,6 @@
     <ClCompile Include="Source\SSBOs\PrefixSumSsbo.cpp">
       <Filter>Source\SSBOs</Filter>
     </ClCompile>
-    <ClCompile Include="Source\ComputeControllers\ParticleSort.cpp">
-      <Filter>Source\ComputeControllers</Filter>
-    </ClCompile>
     <ClCompile Include="Source\SSBOs\OriginalDataCopySsbo.cpp">
       <Filter>Source\SSBOs</Filter>
     </ClCompile>
@@ -37,6 +34,9 @@
     </ClCompile>
     <ClCompile Include="Source\SSBOs\IntermediateDataFirstBuffer.cpp">
       <Filter>Source\SSBOs</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\ComputeControllers\ParallelSort.cpp">
+      <Filter>Source\ComputeControllers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -58,9 +58,6 @@
     <ClInclude Include="Include\RenderFrameRate\FreeTypeEncapsulated.h">
       <Filter>Include\RenderFrameRate</Filter>
     </ClInclude>
-    <ClInclude Include="Include\ComputeControllers\ParticleSort.h">
-      <Filter>Include\ComputeControllers</Filter>
-    </ClInclude>
     <ClInclude Include="Include\SSBOs\PrefixSumSsbo.h">
       <Filter>Include\SSBOs</Filter>
     </ClInclude>
@@ -81,6 +78,9 @@
     </ClInclude>
     <ClInclude Include="Include\SSBOs\OriginalData.h">
       <Filter>Include\SSBOs</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\ComputeControllers\ParallelSort.h">
+      <Filter>Include\ComputeControllers</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -131,22 +131,10 @@
     <None Include="Shaders\ComputeHeaders\Version.comp">
       <Filter>Shaders\ComputeHeaders</Filter>
     </None>
-    <None Include="Shaders\ParallelSort\GetNextBitForPrefixSums.comp">
-      <Filter>Shaders\ParallelSort</Filter>
-    </None>
     <None Include="Shaders\ParallelSort\MortonCodePrefixSums.comp">
       <Filter>Shaders\ParallelSort</Filter>
     </None>
     <None Include="Shaders\ParallelSort\ParallelPrefixScan.comp">
-      <Filter>Shaders\ParallelSort</Filter>
-    </None>
-    <None Include="Shaders\ParallelSort\SortDataWithSortedIntermediateData.comp">
-      <Filter>Shaders\ParallelSort</Filter>
-    </None>
-    <None Include="Shaders\ParallelSort\SortIntermediateDataUsingPrefixSums.comp">
-      <Filter>Shaders\ParallelSort</Filter>
-    </None>
-    <None Include="Shaders\ParallelSort\DataToIntermediateDataForSorting.comp">
       <Filter>Shaders\ParallelSort</Filter>
     </None>
     <None Include="Shaders\ParallelSort\PrefixScanBuffer.comp">
@@ -155,11 +143,26 @@
     <None Include="Shaders\ParallelSort\ParallelSortConstants.comp">
       <Filter>Shaders\ParallelSort</Filter>
     </None>
-    <None Include="Shaders\OriginalDataBuffer.comp">
-      <Filter>Shaders\ParallelSort</Filter>
-    </None>
     <None Include="Shaders\ParallelSort\IntermediateSortBuffers.comp">
       <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\GetBitForPrefixSums.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ComputeHeaders\UniformLocations.comp">
+      <Filter>Shaders\ComputeHeaders</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\OriginalDataToIntermediateData.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\SortIntermediateData.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\SortOriginalData.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\OriginalDataBuffer.comp">
+      <Filter>Shaders</Filter>
     </None>
   </ItemGroup>
 </Project>

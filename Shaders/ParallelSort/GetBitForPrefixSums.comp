@@ -1,0 +1,38 @@
+// REQUIRES Version.comp
+// REQUIRES UniformLocations.comp
+// REQUIRES SsboBufferBindings.comp
+// REQUIRES IntermediateSortBuffers.comp
+// REQUIRES PrefixScanBuffer
+
+
+layout(location = UNIFORM_LOCATION_BIT_NUMBER) uniform uint uBitNumber;
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Grabs a bit from the "read" buffer of the IntermediateSortBuffers and puts it into the 
+    PrefixScanBuffer::AllPrefixSums array.
+
+    This is part of the radix sort algorithm.
+Parameters: None
+Returns:    None
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/
+void main()
+{
+    // Note: Thread count should be the size of the PrefixScanBuffer::AllPrefixSums array.  The 
+    // uniform uIntermediateBufferSize should be the same value, so either will work.
+
+    uint bitMask = 1 << uBitNumber;
+
+    uint index = gl_GlobalInvocationID.x;
+
+    if (uReadFromFirstIntermediateBuffer == 0)
+    {
+        AllPrefixSums[index] = AllIntermediateDataSecondBuffer[index]._data & bitmask;
+    }
+    else 
+    {
+        AllPrefixSums[index] = AllIntermediateDataFirstBuffer[index]._data & bitmask;
+    }
+
+}

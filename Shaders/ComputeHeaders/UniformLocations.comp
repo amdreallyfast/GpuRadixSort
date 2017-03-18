@@ -1,0 +1,37 @@
+/*------------------------------------------------------------------------------------------------
+Description:
+    This file was created because there are some uniforms that need to be used in multiple 
+    shaders.  In previous projects, for example, ParticleBuffer was used by multiple shaders 
+    (ParticleReset.comp, ParticleUpdate.comp, ParticleCollisions.comp) and was always 
+    acoompanied by the uniform uMaxParticles.  This was before the ShaderStorage class was 
+    modified to create composite shaders out of multiple files like it can now, so each compute 
+    controller that used ParticleBuffer had to look up the uniform binding location of 
+    uMaxParticles independently.
+
+    But not the ShaderStorage class CAN create composite shaders, so buffers are defined in 
+    their own .comp files and are accompanied by uniforms specifying their max size.  This demo 
+    of the GPU-based parallel sort has multiple shaders that use the info from one buffer to 
+    alter another buffer, and then the next shader in the process uses the altered buffer to 
+    alter another, and then the next shader uses that one, and it keeps going.  
+    
+    Rather than requiring repeat lookup of the same uniforms in different shaders, hard code 
+    the uniform binding locations to be constant and unique across whatever shaders they may 
+    end up being used in.
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/
+
+// OriginalDataBuffer.comp
+#define UNIFORM_LOCATION_ORIGINAL_DATA_BUFFER_SIZE 0
+
+// IntermediateSortBuffers.comp
+#define UNIFORM_LOCATION_INTERMEDIATE_BUFFER_SIZE 1
+#define UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER 2
+
+// PrefixScanBuffer.comp
+#define UNIFORM_LOCATION_ALL_PREFIX_SUMS_SIZE 3
+
+// GetBitForPrefixSums.comp
+#define UNIFORM_LOCATION_BIT_NUMBER 4
+
+// ParallelPrefixScan.comp
+#define UNIFORM_LOCATION_CALCULATE_ALL 5

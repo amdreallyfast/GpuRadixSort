@@ -30,6 +30,9 @@ struct IntermediateData
     uint _globalIndexOfOriginalData;
 };
 
+// this should be the same size as the PrefixScanBuffer::AllPrefixSums array
+layout(location = UNIFORM_LOCATION_INTERMEDIATE_BUFFER_SIZE) uniform uint uIntermediateBufferSize;
+
 /*------------------------------------------------------------------------------------------------
 Description:
     Should be the same size as the number of data entries used in PrefixScanBuffer * 2.
@@ -73,4 +76,4 @@ layout (std430, binding = INTERMEDIATE_SORT_SECOND_BUFFER_BINDING) buffer Interm
 };
 
 // use a bool (0 == false, otherwise true)
-uniform uint uReadFromFirstBuffer;
+layout(location = UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER) uniform uint uReadFromFirstIntermediateBuffer;

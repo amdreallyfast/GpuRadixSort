@@ -3,6 +3,12 @@
 // REQUIRES ParallelSortConstants.comp
 //  ITEMS_PER_WORK_GROUP
 
+
+// the ParallelSort compute controller should be carefully controlling the number of work groups 
+// and therefore the number of threads, so this value shouldn't actually be neccesary for 
+// excess thread checks (if gl_GlobalInvocationID.x > uAllPrefixSumsSize) { return; }).
+layout(location = UNIFORM_LOCATION_ALL_PREFIX_SUMS_SIZE) uniform uint uAllPrefixSumsSize;
+
 /*------------------------------------------------------------------------------------------------
 Description:
     This is the data that is being scanned AND that is being altered into a prefix sum.
@@ -11,7 +17,7 @@ Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
 layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer PrefixScanBuffer
 {
-    uint perGroupSums[ITEMS_PER_WORK_GROUP];
-    uint allPrefixSums[];
+    uint PerGroupSums[ITEMS_PER_WORK_GROUP];
+    uint AllPrefixSums[];
 };
 

@@ -24,6 +24,8 @@ OriginalDataCopySsbo::OriginalDataCopySsbo(unsigned int numItems) :
     // now bind this new buffer to the dedicated buffer binding location
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, ORIGINAL_DATA_COPY_BUFFER_BINDING, _bufferId);
 
+    // OriginalDataSsbo already gave uOriginalDataBufferSize a value
+
     // and fill it with new data
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bufferId);
     glBufferData(GL_SHADER_STORAGE_BUFFER, v.size() * sizeof(OriginalData), v.data(), GL_DYNAMIC_DRAW);

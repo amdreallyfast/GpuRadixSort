@@ -20,7 +20,7 @@ public:
 
 private:
     // NOT the same as the number of items in the buffer
-    // Note: The buffer has perGroupSums and allPrefixSums.  This item gives the latter's array size.
+    // Note: The buffer has PerGroupSums and AllPrefixSums.  This item gives the latter's array size.
     unsigned int _numPerGroupPrefixSums;
     unsigned int _numDataEntries;
 };

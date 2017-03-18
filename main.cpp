@@ -33,8 +33,9 @@
 // apparently the FreeType lib also needs a companion file, "freetype261d.pdb"
 #pragma comment (lib, "ThirdParty/freetype-2.6.1/objs/vc2010/Win32/freetype261d.lib")
 
-// for printf(...)
 #include <stdio.h>
+#include <memory>
+#include <algorithm>    // for generating demo data
 
 // for basic OpenGL stuff
 #include "Include/OpenGlErrorHandling.h"
@@ -44,7 +45,8 @@
 #include "ThirdParty/glm/vec2.hpp"
 
 #include "Include/SSBOs/OriginalDataSsbo.h"
-#include "Include/ComputeControllers/ParticleSort.h"
+#include "Include/SSBOs/OriginalData.h" // for generating demo data
+#include "Include/ComputeControllers/ParallelSort.h"
 
 // for the frame rate counter
 #include "Include/RenderFrameRate/FreeTypeEncapsulated.h"
@@ -53,10 +55,10 @@
 Stopwatch gTimer;
 FreeTypeEncapsulated gTextAtlases;
 
-OriginalDataSsbo *gpOriginalDataSsbo = nullptr;
-ParticleSort *gpParticleSort = nullptr;
+std::unique_ptr<OriginalDataSsbo> originalDataSsbo = nullptr;
+std::unique_ptr<ParallelSort> parallelSort = nullptr;
 
-const unsigned int MAX_DATA_COUNT = 100000;
+const unsigned int MAX_DATA_COUNT = 2000;
 
 /*------------------------------------------------------------------------------------------------
 Description:
@@ -106,9 +108,35 @@ void Init()
     GLuint freeTypeProgramId = shaderStorageRef.GetShaderProgram(freeTypeShaderKey);
     gTextAtlases.Init("ThirdParty/freetype-2.6.1/FreeSans.ttf", freeTypeProgramId);
 
-    gpParticleSort = new ParticleSort(MAX_DATA_COUNT);
-    gpParticleSort->Sort();
+    // Note: Compute headers with #define'd buffer binding locations makes it easy for the 
+    // ParallelSort compute controller's shaders to access OriginalDataSsbo's data without 
+    // needing to pass the SSBO into it.  GPU computing in multiple steps creates coupling 
+    // between the SSBOs and the shaders, but the compute headers lessen the coupling that needs 
+    // to happen on the CPU side.
+    originalDataSsbo = std::make_unique<OriginalDataSsbo>(MAX_DATA_COUNT);
 
+    // generate dummy data for this demo
+    std::vector<OriginalData> originalData(originalDataSsbo->NumItems());
+    for (size_t dataIndex = 0; dataIndex < originalData.size(); dataIndex++)
+    {
+        // just putting in alternating 1s and 0s
+        originalData[dataIndex]._value = dataIndex % 2;
+    }
+    std::random_shuffle(originalData.begin(), originalData.end());
+
+    // upload the data
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, originalDataSsbo->BufferId());
+    unsigned int bufferSizeBytes = originalData.size() * sizeof(OriginalData);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, originalData.data());
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+
+    parallelSort = std::make_unique<ParallelSort>(MAX_DATA_COUNT);
+    parallelSort->Sort();
+
+
+    //void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
+    //std::vector<OriginalData> sortedData
     printf("");
 
     // the timer will be used for framerate calculations
@@ -307,7 +335,7 @@ int main(int argc, char *argv[])
     glutInitContextProfile(GLUT_CORE_PROFILE);
 
     // enable this for automatic message reporting (see OpenGlErrorHandling.cpp)
-//#define DEBUG
+#define DEBUG
 #ifdef DEBUG
     glutInitContextFlags(GLUT_DEBUG);
 #endif

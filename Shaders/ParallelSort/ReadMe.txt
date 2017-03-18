@@ -3,6 +3,7 @@ The intermediate sort buffers and PrefixScanBuffer::AllPrefixSums buffer are the
 
 DataToIntermediateDataForSorting.comp 
 - launched with 1 thread for each item in PrefixScanBuffer::AllPrefixSums
+- excess threads create IntermediateData structures with value of maximum uint so that these entries will stay at the back after sorting sorted to the back.
 - reading from OriginalDataBuffer.comp
 - fill out the first of buffers in IntermediateSortBuffers.comp
 

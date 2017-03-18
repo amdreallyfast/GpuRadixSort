@@ -2,8 +2,9 @@
 
 #include "ThirdParty/glload/include/glload/gl_4_4.h"
 #include "Shaders/ComputeHeaders/SsboBufferBindings.comp"
+#include "Shaders/ComputeHeaders/UniformLocations.comp"
 
-#include "Include/OriginalData.h"
+#include "Include/SSBOs/OriginalData.h"
 
 #include <vector>
 
@@ -25,6 +26,11 @@ OriginalDataSsbo::OriginalDataSsbo(unsigned int numItems) :
     // now bind this new buffer to the dedicated buffer binding location
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, ORIGINAL_DATA_BUFFER_BINDING, _bufferId);
 
+    // this uniform will remain constant after creation (as long as another OriginalDataSsbo 
+    // isn't created, which will need a new SSBO and a new shader buffer "header" and new 
+    // binding locations)
+    glUniform1ui(UNIFORM_LOCATION_ORIGINAL_DATA_BUFFER_SIZE, numItems);
+
     // and fill it with new data
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bufferId);
     glBufferData(GL_SHADER_STORAGE_BUFFER, v.size() * sizeof(OriginalData), v.data(), GL_DYNAMIC_DRAW);
@@ -41,5 +47,5 @@ Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 unsigned int OriginalDataSsbo::NumItems() const
 {
-
+    return _numItems;
 }

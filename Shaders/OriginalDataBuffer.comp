@@ -15,12 +15,15 @@ struct OriginalDataStructure
     uint _value;
 };
 
+// whatever size the user wants
+layout(location = UNIFORM_LOCATION_ORIGINAL_DATA_BUFFER_SIZE) uniform uint uOriginalDataBufferSize;
+
 /*------------------------------------------------------------------------------------------------
 Description:
     Data size is set by the user.  I can't think of anything special to say about this buffer.
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
-layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer OriginalDataBuffer
+layout (std430, binding = ORIGINAL_DATA_BUFFER_BINDING) buffer OriginalDataBuffer
 {
     OriginalDataStructure AllOriginalData[];
 };
@@ -35,7 +38,7 @@ Description:
     glCopyBufferSubData(...).
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
-layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer OriginalDataCopyBuffer
+layout (std430, binding = ORIGINAL_DATA_COPY_BUFFER_BINDING) buffer OriginalDataCopyBuffer
 {
     OriginalDataStructure AllOriginalDataCopy[];
 };

@@ -1,13 +1,8 @@
 // REQUIRES Version.comp
-// REQUIRES ParallelSortConstants.comp
-// - WORK_GROUP_SIZE_X/Y/Z
-// - ITEMS_PER_WORK_GROUP
 // REQUIRES SsboBufferBindings.comp
-// - PREFIX_SCAN_BUFFER_BINDING
+// REQUIRES UniformLocations.comp
 // REQUIRES OriginalDataBuffer.comp
-// REQUIRES IntermediateSortBuffer.comp
-
-uniform uint uIntermediateBufferSize;
+// REQUIRES IntermediateSortBuffers.comp
 
 /*------------------------------------------------------------------------------------------------
 Description:
@@ -19,7 +14,7 @@ Description:
     a simple, intermediate structure that is much more easily moved around.
 Parameters: None
 Returns:    None
-Creator:    John Cox, 3/11/2017
+Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 void main()
 {
@@ -28,25 +23,29 @@ void main()
     // data.  The number of threads is managed by ParallelSort::Sort(...) to be the same as the 
     // number of data entries that need to be filled out in the PrefixScanBuffer, so if the 
     // thread ID is greater than the number of user-provided data entries, pad out the 
-    // IntermediateData with values of max int.  Do this instead of padding with 0s because the 
-    // sorting will put items with the smallest value first, but entries that don't refer to any 
-    // real data should be put at the back.  
+    // IntermediateData with values of max int.  
+    // Also Note: Pad with max integer instead of 0s because the sorting will put items with the 
+    // smallest value first, but entries that don't refer to any real data should be put at the 
+    // back.  
 
     IntermediateData newThing;
     uint index = gl_GlobalInvocationID.x;
     newThing._globalIndexOfOriginalData = index;
 
-    if (index < uIntermediateBufferSize)
+    if (index < uOriginalDataBufferSize)
     {
         newThing._data = AllOriginalData[index]._value;
     }
-    else
+    else    // >= uOriginalDataBufferSize
     {
         newThing._data = 0xffffffff;
     }
 
+    // this is the beginning of the sorting, so put the values into the first buffer, no 
+    // questions asked
     AllIntermediateDataFirstBuffer[index] = newThing;
 
 
-    // make sure that the uniform uReadFromFirstBuffer in IntermediateSortBuffer is 1 
+    // MAKE SURE now that the uniform uReadFromFirstIntermediateBuffer in 
+    // IntermediateSortBuffer is 1 
 }

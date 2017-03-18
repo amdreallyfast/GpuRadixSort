@@ -2,6 +2,7 @@
 
 #include "ThirdParty/glload/include/glload/gl_4_4.h"
 #include "Shaders/ComputeHeaders/SsboBufferBindings.comp"
+#include "Shaders/ComputeHeaders/UniformLocations.comp"
 
 #include "Include/SSBOs/IntermediateData.h"
 
@@ -23,6 +24,9 @@ IntermediateDataFirstBuffer::IntermediateDataFirstBuffer(unsigned int numItems) 
 
     // now bind this new buffer to the dedicated buffer binding location
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, INTERMEDIATE_SORT_FIRST_BUFFER_BINDING, _bufferId);
+
+    // remains constant after creation
+    glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_SIZE, numItems);
 
     // and fill it with new data
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bufferId);

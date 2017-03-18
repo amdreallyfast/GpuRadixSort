@@ -24,6 +24,8 @@ IntermediateDataSecondBuffer::IntermediateDataSecondBuffer(unsigned int numItems
     // now bind this new buffer to the dedicated buffer binding location
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, INTERMEDIATE_SORT_SECOND_BUFFER_BINDING, _bufferId);
 
+    // IntermediateDataFirstBuffer already gave uIntermediateBufferSize a value
+
     // and fill it with new data
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bufferId);
     glBufferData(GL_SHADER_STORAGE_BUFFER, v.size() * sizeof(IntermediateData), v.data(), GL_DYNAMIC_DRAW);
