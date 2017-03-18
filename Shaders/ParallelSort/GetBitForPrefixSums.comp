@@ -1,9 +1,13 @@
 // REQUIRES Version.comp
+// REQUIRES ParallelSortConstants.comp
+// - PARALLEL_SORT_WORK_GROUP_SIZE_X
 // REQUIRES UniformLocations.comp
 // REQUIRES SsboBufferBindings.comp
 // REQUIRES IntermediateSortBuffers.comp
 // REQUIRES PrefixScanBuffer
 
+// Y and Z work group sizes default to 1
+layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
 
 layout(location = UNIFORM_LOCATION_BIT_NUMBER) uniform uint uBitNumber;
 
@@ -28,11 +32,11 @@ void main()
 
     if (uReadFromFirstIntermediateBuffer == 0)
     {
-        AllPrefixSums[index] = AllIntermediateDataSecondBuffer[index]._data & bitmask;
+        AllPrefixSums[index] = AllIntermediateDataSecondBuffer[index]._data & bitMask;
     }
     else 
     {
-        AllPrefixSums[index] = AllIntermediateDataFirstBuffer[index]._data & bitmask;
+        AllPrefixSums[index] = AllIntermediateDataFirstBuffer[index]._data & bitMask;
     }
 
 }

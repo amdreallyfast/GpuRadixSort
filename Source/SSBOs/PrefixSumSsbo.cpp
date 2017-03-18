@@ -146,12 +146,32 @@ PrefixSumSsbo::PrefixSumSsbo(unsigned int numDataEntries) :
     // now bind this new buffer to the dedicated buffer binding location
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PREFIX_SCAN_BUFFER_BINDING, _bufferId);
 
-    glUniform1ui(UNIFORM_LOCATION_ALL_PREFIX_SUMS_SIZE, _numDataEntries);
-
     // and fill it with 0s
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bufferId);
     glBufferData(GL_SHADER_STORAGE_BUFFER, v.size() * sizeof(unsigned int), v.data(), GL_DYNAMIC_DRAW);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Defines the buffer's size uniform in the specified shader.  It uses the #define'd uniform 
+    location found in UniformLocations.comp.
+
+    If the shader does not have the uniform or if the shader compiler optimized it out, then 
+    OpenGL will complain about not finding it.  Enable debugging in main() in main.cpp for more 
+    detail.
+Parameters: 
+    computeProgramId    Self-explanatory.
+Returns:    
+    See Description.
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/  
+void PrefixSumSsbo::ConfigureUniforms(unsigned int computeProgramId) const
+{
+    // the uniform should remain constant after this 
+    glUseProgram(computeProgramId);
+    glUniform1ui(UNIFORM_LOCATION_ALL_PREFIX_SUMS_SIZE, _numDataEntries);
+    glUseProgram(0);
 }
 
 /*------------------------------------------------------------------------------------------------

@@ -44,7 +44,7 @@
 // for particles, where they live, and how to update them
 #include "ThirdParty/glm/vec2.hpp"
 
-#include "Include/SSBOs/OriginalDataSsbo.h"
+#include "Include/SSBOs/originalData.h"
 #include "Include/SSBOs/OriginalData.h" // for generating demo data
 #include "Include/ComputeControllers/ParallelSort.h"
 
@@ -55,7 +55,7 @@
 Stopwatch gTimer;
 FreeTypeEncapsulated gTextAtlases;
 
-std::unique_ptr<OriginalDataSsbo> originalDataSsbo = nullptr;
+OriginalDataSsbo::UNIQUE_PTR originalData = nullptr;
 std::unique_ptr<ParallelSort> parallelSort = nullptr;
 
 const unsigned int MAX_DATA_COUNT = 2000;
@@ -109,29 +109,29 @@ void Init()
     gTextAtlases.Init("ThirdParty/freetype-2.6.1/FreeSans.ttf", freeTypeProgramId);
 
     // Note: Compute headers with #define'd buffer binding locations makes it easy for the 
-    // ParallelSort compute controller's shaders to access OriginalDataSsbo's data without 
+    // ParallelSort compute controller's shaders to access originalData's data without 
     // needing to pass the SSBO into it.  GPU computing in multiple steps creates coupling 
     // between the SSBOs and the shaders, but the compute headers lessen the coupling that needs 
     // to happen on the CPU side.
-    originalDataSsbo = std::make_unique<OriginalDataSsbo>(MAX_DATA_COUNT);
+    originalData = std::make_unique<OriginalDataSsbo>(MAX_DATA_COUNT);
 
     // generate dummy data for this demo
-    std::vector<OriginalData> originalData(originalDataSsbo->NumItems());
-    for (size_t dataIndex = 0; dataIndex < originalData.size(); dataIndex++)
+    std::vector<OriginalData> demoData(originalData->NumItems());
+    for (size_t dataIndex = 0; dataIndex < demoData.size(); dataIndex++)
     {
         // just putting in alternating 1s and 0s
-        originalData[dataIndex]._value = dataIndex % 2;
+        demoData[dataIndex]._value = dataIndex % 2;
     }
-    std::random_shuffle(originalData.begin(), originalData.end());
+    std::random_shuffle(demoData.begin(), demoData.end());
 
     // upload the data
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, originalDataSsbo->BufferId());
-    unsigned int bufferSizeBytes = originalData.size() * sizeof(OriginalData);
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, originalData.data());
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, originalData->BufferId());
+    unsigned int bufferSizeBytes = demoData.size() * sizeof(OriginalData);
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, demoData.data());
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
-    parallelSort = std::make_unique<ParallelSort>(MAX_DATA_COUNT);
+    parallelSort = std::make_unique<ParallelSort>(originalData);
     parallelSort->Sort();
 
 

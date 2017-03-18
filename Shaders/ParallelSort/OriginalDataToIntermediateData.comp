@@ -1,8 +1,13 @@
 // REQUIRES Version.comp
+// REQUIRES ParallelSortConstants.comp
+// - PARALLEL_SORT_WORK_GROUP_SIZE_X
 // REQUIRES SsboBufferBindings.comp
 // REQUIRES UniformLocations.comp
 // REQUIRES OriginalDataBuffer.comp
 // REQUIRES IntermediateSortBuffers.comp
+
+// Y and Z work group sizes default to 1
+layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
 
 /*------------------------------------------------------------------------------------------------
 Description:

@@ -15,6 +15,7 @@ class IntermediateDataSecondBuffer : public SsboBase
 {
 public:
     IntermediateDataSecondBuffer(unsigned int numItems);
+    typedef std::unique_ptr<IntermediateDataSecondBuffer> UNIQUE_PTR;
 
 private:
 };

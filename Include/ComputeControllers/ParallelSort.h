@@ -7,6 +7,7 @@
 #include "Include/SSBOs/PrefixSumSsbo.h"
 #include "Include/SSBOs/IntermediateDataFirstBuffer.h"
 #include "Include/SSBOs/IntermediateDataSecondBuffer.h"
+#include "Include/SSBOs/OriginalDataSsbo.h"
 #include "Include/SSBOs/OriginalDataCopySsbo.h"
 
 
@@ -15,7 +16,7 @@
 class ParallelSort
 {
 public:
-    ParallelSort(unsigned int originalDataSize);
+    ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort);
 
     // TODO: use C++'s std::chrono for microsecond measurement of assigning Morton Codes
     // TODO: repeat for the radix sort
@@ -29,8 +30,8 @@ private:
     unsigned int _getBitForPrefixSumsProgramId;
     unsigned int _parallelPrefixScanProgramId;
 
-    std::unique_ptr<OriginalDataCopySsbo> _originalDataCopySsbo;
-    std::unique_ptr<IntermediateDataFirstBuffer> _intermediateDataFirstBuffer;
-    std::unique_ptr<IntermediateDataSecondBuffer> _intermediateDataSecondBuffer;
-    std::unique_ptr<PrefixSumSsbo> _prefixSumSsbo;
+    OriginalDataCopySsbo::UNIQUE_PTR _originalDataCopySsbo;
+    IntermediateDataFirstBuffer::UNIQUE_PTR _intermediateDataFirstBuffer;
+    IntermediateDataSecondBuffer::UNIQUE_PTR _intermediateDataSecondBuffer;
+    PrefixSumSsbo::UNIQUE_PTR _prefixSumSsbo;
 };

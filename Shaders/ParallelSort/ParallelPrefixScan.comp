@@ -15,15 +15,15 @@ Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
 
 // REQUIRES Version.comp
+// REQUIRES ParallelSortConstants.comp
+// - PARALLEL_SORT_WORK_GROUP_SIZE_X
+// - ITEMS_PER_WORK_GROUP
 // REQUIRES UniformLocations.comp
 // REQUIRES SsboBufferBindings.comp
-// REQUIRES ParallelSortConstants.comp
-// - PARALLEL_SORT_WORK_GROUP_SIZE_X/Y/Z
-// - ITEMS_PER_WORK_GROUP
 // REQUIRES PrefixScanBuffer.comp
 
-layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X, local_size_y = 1, local_size_z = 1) in;
-
+// Y and Z work group sizes default to 1
+layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
 
 
 // create a shared memory buffer for fast memory operations (better than global), two items per 

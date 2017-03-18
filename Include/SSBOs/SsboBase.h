@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <memory>
 
 /*------------------------------------------------------------------------------------------------
 Description:
@@ -13,10 +14,12 @@ class SsboBase
 public:
     SsboBase();
     virtual ~SsboBase();
+    typedef std::unique_ptr<SsboBase> UNIQUE_PTR;
+
 
     // derived class needs customized Init(...) function to initialize member values
-
-    virtual void ConfigureRender(unsigned int renderProgramId, unsigned int drawStyle);
+    virtual void ConfigureUniforms(unsigned int computeProgramId) const;
+    virtual void ConfigureRender(unsigned int renderProgramId, unsigned int drawStyle) const;
 
     unsigned int VaoId() const;
     unsigned int BufferId() const;

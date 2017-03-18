@@ -19,13 +19,18 @@ using std::endl;
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    Generates multiple compute shaders for the different stages of the parallel sort.
+    Generates multiple compute shaders for the different stages of the parallel sort, and 
+    allocates various buffers for the sorting.  Buffer sizes are highly dependent on the size of 
+    the original data.  They are expected to remain constant after class creation.
+    
+    The original data's SSBO MUST be passed in so that the uniform specifying buffer size can be 
+    set for any compute shaders that use it.
 Parameters: 
-    originalDataSize    Self-explanatory.  This should never change after object creation.
+    dataToSort  See Description.
 Returns:    None
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
-ParallelSort::ParallelSort(unsigned int originalDataSize) :
+ParallelSort::ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort) :
     _originalDataToIntermediateDataProgramId(0),
     _getBitForPrefixSumsProgramId(0),
     _parallelPrefixScanProgramId(0),
@@ -46,11 +51,13 @@ ParallelSort::ParallelSort(unsigned int originalDataSize) :
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/SsboBufferBindings.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/UniformLocations.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/OriginalDataBuffer.comp");
-    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/IntermediatSortBuffers.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelSortConstants.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/IntermediateSortBuffers.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/OriginalDataToIntermediateData.comp");
     shaderStorageRef.CompileCompositeShader(shaderKey, GL_COMPUTE_SHADER);
     shaderStorageRef.LinkShader(shaderKey);
     _originalDataToIntermediateDataProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
+    dataToSort->ConfigureUniforms(_originalDataToIntermediateDataProgramId);
 
     // on each loop in Sort(), pluck out a single bit and add it to the 
     // PrefixScanBuffer::AllPrefixSums array
@@ -59,6 +66,7 @@ ParallelSort::ParallelSort(unsigned int originalDataSize) :
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/Version.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/SsboBufferBindings.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/UniformLocations.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelSortConstants.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/IntermediateSortBuffers.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/PrefixScanBuffer.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/GetBitForPrefixSums.comp");
@@ -75,19 +83,23 @@ ParallelSort::ParallelSort(unsigned int originalDataSize) :
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/SsboBufferBindings.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelSortConstants.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/PrefixScanBuffer.comp");
-    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParalleltSort/ParallelPrefixScan.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelPrefixScan.comp");
     shaderStorageRef.CompileCompositeShader(shaderKey, GL_COMPUTE_SHADER);
     shaderStorageRef.LinkShader(shaderKey);
     _parallelPrefixScanProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
 
-
+    unsigned int originalDataSize = dataToSort->NumItems();
     _originalDataCopySsbo = std::make_unique<OriginalDataCopySsbo>(originalDataSize);
     _prefixSumSsbo = std::make_unique<PrefixSumSsbo>(originalDataSize);
+    _prefixSumSsbo->ConfigureUniforms(_getBitForPrefixSumsProgramId);
+    _prefixSumSsbo->ConfigureUniforms(_parallelPrefixScanProgramId);
 
-    // see explanation in the PrefixSumSsbo constructor for why there are likely more entires in 
+    // see explanation in the PrefixSumSsbo constructor for why there are likely more entries in 
     // PrefixScanBuffer::AllPrefixSums than the requested number of items that need sorting
     unsigned int numEntriesInPrefixSumBuffer = _prefixSumSsbo->NumDataEntries();
     _intermediateDataFirstBuffer = std::make_unique<IntermediateDataFirstBuffer>(numEntriesInPrefixSumBuffer);
+    _intermediateDataFirstBuffer->ConfigureUniforms(_originalDataToIntermediateDataProgramId);
+    _intermediateDataFirstBuffer->ConfigureUniforms(_getBitForPrefixSumsProgramId);
     _intermediateDataSecondBuffer = std::make_unique<IntermediateDataSecondBuffer>(numEntriesInPrefixSumBuffer);
 
 }

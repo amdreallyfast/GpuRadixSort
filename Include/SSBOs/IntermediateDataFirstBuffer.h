@@ -18,6 +18,11 @@ class IntermediateDataFirstBuffer : public SsboBase
 {
 public:
     IntermediateDataFirstBuffer(unsigned int numItems);
+    typedef std::unique_ptr<IntermediateDataFirstBuffer> UNIQUE_PTR;
+
+    void ConfigureUniforms(unsigned int computeProgramId) const override;
+    unsigned int NumItems() const;
 
 private:
+    unsigned int _numItems;
 };

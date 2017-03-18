@@ -22,6 +22,7 @@ class OriginalDataCopySsbo : public SsboBase
 {
 public:
     OriginalDataCopySsbo(unsigned int numItems);
+    typedef std::unique_ptr<OriginalDataCopySsbo> UNIQUE_PTR;
 
 private:
 };

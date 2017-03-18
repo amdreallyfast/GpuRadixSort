@@ -60,14 +60,38 @@ SsboBase::~SsboBase()
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    Does nothing.  There are several SSBOs required as part of the parallel sorting, and those 
-    SSBO don't do anything with rendering, so let this be a virtual method, not pure virtual.
+    The uniform binding locations may be #define'd in a compute "header", but as far as OpenGL 
+    is concerned, uniform binding locations are specific to the shader, so SSBOs that, for 
+    example, want to define a uniform for buffer size need to do it for each shader that uses 
+    it.  This is a common issue in the parallel sort algorithm, in which buffers are used in at 
+    least 2 shaders, so the uniform for buffer size needs to be defined for each of them.
+
+    The method does nothing though.  There may be a shader that does not have a uniform or that
+    doesn't need to define them for whatever reason.  In that case, let the derived class use 
+    this base method.
 Parameters: 
     Ignored
 Returns:    None
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
-void SsboBase::ConfigureRender(unsigned int, unsigned int)
+void SsboBase::ConfigureUniforms(unsigned int) const
+{
+    // nothing
+}
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Define in derived class if the SSBO's data will be used during rendering.
+
+    This one does nothing.  There are several SSBOs required as part of the parallel sorting, 
+    and those SSBO don't do anything with rendering, so let this be a virtual method, not pure 
+    virtual.
+Parameters: 
+    Ignored
+Returns:    None
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/
+void SsboBase::ConfigureRender(unsigned int, unsigned int) const
 {
     // nothing
 }

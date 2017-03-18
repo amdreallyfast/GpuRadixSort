@@ -172,6 +172,12 @@ void ShaderStorage::AddAndCompileShaderFile(const std::string &programKey, const
     }
 
     std::ifstream shaderFile(filePath);
+    if (!shaderFile.is_open())
+    {
+        fprintf(stderr, "Cannot open shader file '%s'\n", filePath.c_str());
+        return;
+    }
+
     std::stringstream shaderData;
     shaderData << shaderFile.rdbuf();
     shaderFile.close();
@@ -224,6 +230,12 @@ void ShaderStorage::AddPartialShaderFile(const std::string &programKey, const st
     }
 
     std::ifstream shaderFile(filePath);
+    if (!shaderFile.is_open())
+    {
+        fprintf(stderr, "Cannot open shader file '%s'\n", filePath.c_str());
+        return;
+    }
+
     std::stringstream shaderData;
     shaderData << shaderFile.rdbuf();
     shaderFile.close();
