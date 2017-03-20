@@ -141,7 +141,9 @@ PrefixSumSsbo::PrefixSumSsbo(unsigned int numDataEntries) :
     _numPerGroupPrefixSums = ITEMS_PER_WORK_GROUP;
 
     // the std::vector<...>(...) constructor will set everything to 0
-    std::vector<unsigned int> v(_numPerGroupPrefixSums + _numDataEntries);
+    // Note: The +1 is because of a single uint in the buffer, totalNumberOfOnes.  See 
+    // explanation in PrefixScanBuffer.comp.
+    std::vector<unsigned int> v(_numPerGroupPrefixSums + 1 + _numDataEntries);
 
     // now bind this new buffer to the dedicated buffer binding location
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PREFIX_SCAN_BUFFER_BINDING, _bufferId);
@@ -176,9 +178,9 @@ void PrefixSumSsbo::ConfigureUniforms(unsigned int computeProgramId) const
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    Returns the number of integers that have been allocated for the PerGroupSums array.  The 
-    constructor ensures that this is the size of 1, and only 1, work group's worth of data for 
-    the PerGroupSums array.
+    Returns the number of integers that have been allocated for the PrefixSumsPerGroup array.  
+    The constructor ensures that this is the size of 1, and only 1, work group's worth of data 
+    for the PrefixSumsPerGroup array.
 Parameters: None
 Returns:    
     See Description.
@@ -191,7 +193,7 @@ unsigned int PrefixSumSsbo::NumPerGroupPrefixSums() const
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    Returns the number of integers that have been allocated for the AllPrefixSums array.  The 
+    Returns the number of integers that have been allocated for the PrefixSumsWithinGroup array.  The 
     constructor ensures that there are enough entries for every item to be part of a work group.  
 Parameters: None
 Returns:    

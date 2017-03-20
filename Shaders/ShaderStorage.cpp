@@ -192,7 +192,7 @@ void ShaderStorage::AddAndCompileShaderFile(const std::string &programKey, const
     GLuint shaderId = CompileShader(fileContents, shaderType);
     if (shaderId == 0)
     {
-        fprintf(stderr, "Problem compiling shader for program key %s\n", programKey.c_str());
+        fprintf(stderr, "Problem compiling shader for program key '%s'\n", programKey.c_str());
         return;
     }
     
@@ -284,14 +284,14 @@ void ShaderStorage::CompileCompositeShader(const std::string &programKey, const 
     const std::string &fileContents = itr->second;
     if (fileContents.empty())
     {
-        fprintf(stderr, "Program key %s exists, but the composite shader is empty.\n", programKey.c_str());
+        fprintf(stderr, "Program key '%s' exists, but the composite shader is empty.\n", programKey.c_str());
         return;
     }
 
     GLuint shaderId = CompileShader(fileContents, shaderType);
     if (shaderId == 0)
     {
-        fprintf(stderr, "Problem compiling shader for program key %s\n", programKey.c_str());
+        fprintf(stderr, "Problem compiling shader for program key '%s'\n", programKey.c_str());
         return;
     }
 

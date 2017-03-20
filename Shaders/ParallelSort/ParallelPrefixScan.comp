@@ -20,7 +20,7 @@ Creator:    John Cox, 3/11/2017
 // - ITEMS_PER_WORK_GROUP
 // REQUIRES UniformLocations.comp
 // REQUIRES SsboBufferBindings.comp
-// REQUIRES PrefixScanBuffer.comp
+// REQUIRES PrefixScanBuffer.comp.comp
 
 // Y and Z work group sizes default to 1
 layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
@@ -41,7 +41,7 @@ Parameters: None
 Returns:    None
 Creator:    John Cox, 3/16/2017
 ------------------------------------------------------------------------------------------------*/
-void CalculateAllPrefixSums()
+void CalculatePrefixSumsWithinGroup()
 {
     // from now on, only deal with the suff in your own work group
     // Note: Each thread deals with 2 items.
@@ -59,7 +59,7 @@ void CalculateAllPrefixSums()
             uint lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
             uint greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
-            AllPrefixSums[greaterIndex] += AllPrefixSums[lesserIndex];
+            PrefixSumsWithinGroup[greaterIndex] += PrefixSumsWithinGroup[lesserIndex];
         }
         indexMultiplierDueToDepth *= 2;
     }
@@ -67,8 +67,8 @@ void CalculateAllPrefixSums()
     // only one thread should do these (prevents unnecessary writes)
     if (doubleGroupThreadIndex == 0)
     {
-        PerGroupSums[gl_WorkGroupID.x] = AllPrefixSums[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1];
-        AllPrefixSums[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1] = 0;
+        PrefixSumsPerGroup[gl_WorkGroupID.x] = PrefixSumsWithinGroup[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1];
+        PrefixSumsWithinGroup[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1] = 0;
     }
     indexMultiplierDueToDepth >>= 1;
 
@@ -81,9 +81,9 @@ void CalculateAllPrefixSums()
             uint lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
             uint greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
-            uint temp = AllPrefixSums[lesserIndex];
-            AllPrefixSums[lesserIndex] = AllPrefixSums[greaterIndex];
-            AllPrefixSums[greaterIndex] += temp;
+            uint temp = PrefixSumsWithinGroup[lesserIndex];
+            PrefixSumsWithinGroup[lesserIndex] = PrefixSumsWithinGroup[greaterIndex];
+            PrefixSumsWithinGroup[greaterIndex] += temp;
         }
 
         indexMultiplierDueToDepth >>= 1;
@@ -104,8 +104,8 @@ void CalculateAllPrefixSums()
 //
 //    // Copy from global to shared data for a faster algorithm (and easier index calculations)
 //    // Note: Two elements per thread.
-//    fastTempArr[doubleGroupThreadIndex] = AllPrefixSums[doubleGlobalThreadIndex];
-//    fastTempArr[doubleGroupThreadIndex + 1] = AllPrefixSums[doubleGlobalThreadIndex + 1];
+//    fastTempArr[doubleGroupThreadIndex] = PrefixSumsWithinGroup[doubleGlobalThreadIndex];
+//    fastTempArr[doubleGroupThreadIndex + 1] = PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1];
 //
 //    // called simply "offset" in the GPU Gems article, this is a multiplier that works in 
 //    // conjunction with the thread number to calculate which index pairs are being considered on 
@@ -183,22 +183,22 @@ void CalculateAllPrefixSums()
 //    // write the data back, two elements per thread, but wait for all the group threads to 
 //    // finish their loops first
 //    barrier();
-//    AllPrefixSums[doubleGlobalThreadIndex] = fastTempArr[doubleGroupThreadIndex];
-//    AllPrefixSums[doubleGlobalThreadIndex + 1] = fastTempArr[doubleGroupThreadIndex + 1];
+//    PrefixSumsWithinGroup[doubleGlobalThreadIndex] = fastTempArr[doubleGroupThreadIndex];
+//    PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1] = fastTempArr[doubleGroupThreadIndex + 1];
 //
 }
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    Like CalculateAllPrefixSums(), but only only for the PerGroupSums.
+    Like CalculatePrefixSumsWithinGroup(), but only only for the PrefixSumsPerGroup.
 Parameters: None
 Returns:    None
 Creator:    John Cox, 3/16/2017
 ------------------------------------------------------------------------------------------------*/
-void PrefixSumOnPerGroupSums()
+void PrefixSumOnPrefixSumsPerGroup()
 {
-    // the PerGroupSums array is only one work group's worth of data, so the starting index is 
-    // implicitly 0 and there is no need for a workGroupStartingIndex
+    // the PrefixSumsPerGroup array is only one work group's worth of data, so the starting 
+    // index is implicitly 0 and there is no need for a workGroupStartingIndex
     uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
 
     uint indexMultiplierDueToDepth = 1;
@@ -212,7 +212,7 @@ void PrefixSumOnPerGroupSums()
             uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
             uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
-            PerGroupSums[greaterIndex] += PerGroupSums[lesserIndex];
+            PrefixSumsPerGroup[greaterIndex] += PrefixSumsPerGroup[lesserIndex];
         }
         indexMultiplierDueToDepth *= 2;
     }
@@ -220,7 +220,8 @@ void PrefixSumOnPerGroupSums()
     // only one thread should do these (prevents unnecessary writes)
     if (doubleGroupThreadIndex == 0)
     {
-        PerGroupSums[ITEMS_PER_WORK_GROUP - 1] = 0;
+        totalNumberOfOnes = PrefixSumsPerGroup[ITEMS_PER_WORK_GROUP - 1];
+        PrefixSumsPerGroup[ITEMS_PER_WORK_GROUP - 1] = 0;
     }
     indexMultiplierDueToDepth >>= 1;
 
@@ -233,9 +234,9 @@ void PrefixSumOnPerGroupSums()
             uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
             uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
-            uint temp = PerGroupSums[lesserIndex];
-            PerGroupSums[lesserIndex] = PerGroupSums[greaterIndex];
-            PerGroupSums[greaterIndex] += temp;
+            uint temp = PrefixSumsPerGroup[lesserIndex];
+            PrefixSumsPerGroup[lesserIndex] = PrefixSumsPerGroup[greaterIndex];
+            PrefixSumsPerGroup[greaterIndex] += temp;
         }
 
         indexMultiplierDueToDepth >>= 1;
@@ -267,13 +268,13 @@ void main()
     if (uCalculateAll == 1)
     {
         // calculate the prefix sums for everyone and fill out the collection of per-work-group sums
-        CalculateAllPrefixSums();
+        CalculatePrefixSumsWithinGroup();
     }
     else
     {
         // calculate the prefix sums for the collection of per-work-group sums, turning this 
         // array from a collection of individual sums into a prefix sum array itself
-        PrefixSumOnPerGroupSums();
+        PrefixSumOnPrefixSumsPerGroup();
     }
 
     // done!

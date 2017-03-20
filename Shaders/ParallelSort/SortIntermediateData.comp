@@ -1,0 +1,99 @@
+// REQUIRES Version.comp
+// REQUIRES ParallelSortConstants.comp
+// - PARALLEL_SORT_WORK_GROUP_SIZE_X
+// REQUIRES UniformLocations.comp
+// REQUIRES SsboBufferBindings.comp
+// REQUIRES IntermediateSortBuffers.comp
+// REQUIRES PrefixScanBuffer.comp
+
+// Y and Z work group sizes default to 1
+layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
+
+// also used in GetBitForPrefixScans.comp (different uniform of course because different shader)
+layout(location = UNIFORM_LOCATION_BIT_NUMBER) uniform uint uBitNumber;
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    Uses the radix sorting algorithm to sort the IntermediateData structures in the "read" 
+    buffer into the "write" buffer from IntermediateSortBuffers using the prefix sums from 
+    PrefixScanBuffer.
+
+    This is part of the radix sort algorithm.
+    Note: As per radix sort, the value must remain relative to others with the same value.
+    Suppose there is the following data: 0 1 0 0 1 1 0
+    The 0s will be gathered to the left and the 1s to the right, but not in any order.  The 
+    first 0 will be on the far left, the send 0 after that, the third 0 after that, and the 
+    fourth 0 after that.  Then the first 1, then the second 1, then the third. 
+    
+    The order is maintained by a simple calculation that uses the thread number and a prefix 
+    scan of the number of 0s in the data set, not on the number of 1s.  This sorting approach 
+    comes from the GPU Gems 3 article on parallel prefix scan.  GetBitForPrefixScan.comp makes 
+    the bit flip.  It makes the following calculation work.  So all the prefix sums plus 
+    PrefixScanBuffer::totalNumberOfOnes is actually the total number of values in the "read" 
+    intermediate buffer that have a 1 at the current bit.  
+
+Parameters: None
+Returns:    None
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/
+void main()
+{
+    // Note: Thread count should be the size of the PrefixScanBuffer::PrefixSumsWithinGroup array.  The 
+    // uniform uIntermediateBufferSize should be the same value, so either will work.
+    
+    // implicitly "total number of zeros"
+    //uint offsetFor1s = uPrefixSumsWithinGroupSize - totalNumberOfOnes;
+
+    // use this bit as a multiplicative flag to determine whether the IntermediateData should go 
+    // in the 0s or the 1s
+    uint bitMask = 1 << uBitNumber;
+
+    uint bitVal = 0;
+    uint threadIndex = gl_GlobalInvocationID.x;
+    if (uReadFromFirstIntermediateBuffer == 0)
+    {
+        bitVal = (AllIntermediateDataSecondBuffer[threadIndex]._data & bitMask);
+    }
+    else 
+    {
+        bitVal = (AllIntermediateDataFirstBuffer[threadIndex]._data & bitMask);
+    }
+
+    // this variable, as trivial as it is, was intoduced to try alieve confusion
+    // Note: See function Description for explanation
+    //uint totalNumberOfZeros = PrefixScanBuffer::totalNumberOfOnes;
+    uint totalNumberOfZeros = totalNumberOfOnes;
+
+    // remember that, during prefix scan, each thread works on 2 items, so the number of data 
+    // entries that were scanned per work group is twice the size of a work group, but this 
+    // shader has only 1 thread per IntermediateData object, so half the work group ID to get 
+    // the right index
+    uint prefixSumOfZeros = PrefixSumsPerGroup[gl_WorkGroupID.x / 2] + PrefixSumsWithinGroup[threadIndex];
+
+    // I don't have an intuitive explanation of why this works, but it does.  
+    //??why does this work? from GPU Gems 3, section 39.3.3 Radix Sort??
+    // Note: If the value being sorted has a 1 at the current bit, then the order of 1s in the 
+    // data set is maintained by the thread ID.  If the value being sorted does not have a 1, 
+    // then the order of 0s in the data set is maintained by the number of 0s that came before 
+    // it.
+    uint destinationIndex = 0;
+    if (bitVal == 1)
+    {
+        destinationIndex = totalNumberOfZeros + (threadIndex - prefixSumOfZeros);
+    }
+    else
+    {
+        destinationIndex = prefixSumOfZeros;
+    }
+
+    // do the write
+    if (uReadFromFirstIntermediateBuffer == 0)
+    {
+        AllIntermediateDataFirstBuffer[destinationIndex] = AllIntermediateDataSecondBuffer[threadIndex];
+    }
+    else
+    {
+        AllIntermediateDataSecondBuffer[destinationIndex] = AllIntermediateDataFirstBuffer[threadIndex];
+    }
+
+}

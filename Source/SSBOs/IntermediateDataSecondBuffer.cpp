@@ -12,7 +12,7 @@ Description:
     Initializes base class, then gives derived class members initial values and allocates space 
     for the SSBO.
 Parameters: 
-    numItems    MUST be the same size as PrefixScanBuffer::AllPrefixSums.
+    numItems    MUST be the same size as PrefixScanBuffer::PrefixSumsWithinGroup.
 Returns:    None
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/

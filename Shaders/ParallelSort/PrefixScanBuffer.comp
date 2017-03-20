@@ -6,18 +6,25 @@
 
 // the ParallelSort compute controller should be carefully controlling the number of work groups 
 // and therefore the number of threads, so this value shouldn't actually be neccesary for 
-// excess thread checks (if gl_GlobalInvocationID.x > uAllPrefixSumsSize) { return; }).
-layout(location = UNIFORM_LOCATION_ALL_PREFIX_SUMS_SIZE) uniform uint uAllPrefixSumsSize;
+// excess thread checks (if gl_GlobalInvocationID.x > uPrefixSumsWithinGroupSize) { return; }).
+layout(location = UNIFORM_LOCATION_ALL_PREFIX_SUMS_SIZE) uniform uint uPrefixSumsWithinGroupSize;
 
 /*------------------------------------------------------------------------------------------------
 Description:
     This is the data that is being scanned AND that is being altered into a prefix sum.
     See explanation of sizes in PrefixSumSsbo.
+
+    Note: The totalNumberOfOnes value between the buffers is set during in the middle of the 
+    prefix scan algorithm of the PrefixSumsPerGroup array in the same manner that entries in 
+    PrefixSumsPerGroup are set in the middle of each work group's prefix scan of PrefixSumsWithinGroup.  
+    It is used along with uPrefixSumsWithinGroupSize in SortIntermediateData.comp to determine the total 
+    number of 0s and thus the offset for where the 1s should be put.
 Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
 layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer PrefixScanBuffer
 {
-    uint PerGroupSums[ITEMS_PER_WORK_GROUP];
-    uint AllPrefixSums[];
+    uint PrefixSumsPerGroup[ITEMS_PER_WORK_GROUP];
+    uint totalNumberOfOnes;
+    uint PrefixSumsWithinGroup[];
 };
 

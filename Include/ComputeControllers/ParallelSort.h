@@ -27,8 +27,9 @@ public:
 
 private:
     unsigned int _originalDataToIntermediateDataProgramId;
-    unsigned int _getBitForPrefixSumsProgramId;
+    unsigned int _getBitForPrefixScansProgramId;
     unsigned int _parallelPrefixScanProgramId;
+    unsigned int _sortIntermediateDataProgramId;
 
     OriginalDataCopySsbo::UNIQUE_PTR _originalDataCopySsbo;
     IntermediateDataFirstBuffer::UNIQUE_PTR _intermediateDataFirstBuffer;

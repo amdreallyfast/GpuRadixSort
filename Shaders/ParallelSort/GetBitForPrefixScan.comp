@@ -4,17 +4,18 @@
 // REQUIRES UniformLocations.comp
 // REQUIRES SsboBufferBindings.comp
 // REQUIRES IntermediateSortBuffers.comp
-// REQUIRES PrefixScanBuffer
+// REQUIRES PrefixScanBuffer.comp
 
 // Y and Z work group sizes default to 1
 layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
 
+// also used in SortIntermediateData.comp (different uniform of course because different shader)
 layout(location = UNIFORM_LOCATION_BIT_NUMBER) uniform uint uBitNumber;
 
 /*------------------------------------------------------------------------------------------------
 Description:
     Grabs a bit from the "read" buffer of the IntermediateSortBuffers and puts it into the 
-    PrefixScanBuffer::AllPrefixSums array.
+    PrefixScanBuffer::PrefixSumsWithinGroup array.
 
     This is part of the radix sort algorithm.
 Parameters: None
@@ -23,20 +24,32 @@ Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 void main()
 {
-    // Note: Thread count should be the size of the PrefixScanBuffer::AllPrefixSums array.  The 
+    // Note: Thread count should be the size of the PrefixScanBuffer::PrefixSumsWithinGroup array.  The 
     // uniform uIntermediateBufferSize should be the same value, so either will work.
 
     uint bitMask = 1 << uBitNumber;
 
+    uint bitVal = 0;
     uint index = gl_GlobalInvocationID.x;
-
     if (uReadFromFirstIntermediateBuffer == 0)
     {
-        AllPrefixSums[index] = AllIntermediateDataSecondBuffer[index]._data & bitMask;
+        bitVal = AllIntermediateDataSecondBuffer[index]._data & bitMask;
     }
     else 
     {
-        AllPrefixSums[index] = AllIntermediateDataFirstBuffer[index]._data & bitMask;
+        bitVal = AllIntermediateDataFirstBuffer[index]._data & bitMask;
     }
 
+    // Note: The radix sorting procedure described in the GPU Gems 3 article on parallel prefix 
+    // scan that inspired this demo runs the prefix scan on the number of 0s, not the numbers of 
+    // 1s as is normally done in a prefix scan.  But ParallelPrefixScan doesn't need to know 
+    // that :).  It just needs 0s and 1s.  For application, see SortIntermediateData.comp.
+    if (bitVal == 0)
+    {
+        PrefixSumsWithinGroup[index] = 1;
+    }
+    else
+    {
+        PrefixSumsWithinGroup[index] = 0;
+    }
 }

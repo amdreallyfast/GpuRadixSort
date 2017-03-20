@@ -146,9 +146,6 @@
     <None Include="Shaders\ParallelSort\IntermediateSortBuffers.comp">
       <Filter>Shaders\ParallelSort</Filter>
     </None>
-    <None Include="Shaders\ParallelSort\GetBitForPrefixSums.comp">
-      <Filter>Shaders\ParallelSort</Filter>
-    </None>
     <None Include="Shaders\ComputeHeaders\UniformLocations.comp">
       <Filter>Shaders\ComputeHeaders</Filter>
     </None>
@@ -163,6 +160,9 @@
     </None>
     <None Include="Shaders\OriginalDataBuffer.comp">
       <Filter>Shaders</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\GetBitForPrefixScan.comp">
+      <Filter>Shaders\ParallelSort</Filter>
     </None>
   </ItemGroup>
 </Project>

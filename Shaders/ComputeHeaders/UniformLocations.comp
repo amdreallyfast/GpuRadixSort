@@ -30,7 +30,7 @@ Creator:    John Cox, 3/2017
 // PrefixScanBuffer.comp
 #define UNIFORM_LOCATION_ALL_PREFIX_SUMS_SIZE 3
 
-// GetBitForPrefixSums.comp
+// GetBitForPrefixScans.comp
 #define UNIFORM_LOCATION_BIT_NUMBER 4
 
 // ParallelPrefixScan.comp

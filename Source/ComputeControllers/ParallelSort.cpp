@@ -32,8 +32,9 @@ Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 ParallelSort::ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort) :
     _originalDataToIntermediateDataProgramId(0),
-    _getBitForPrefixSumsProgramId(0),
+    _getBitForPrefixScansProgramId(0),
     _parallelPrefixScanProgramId(0),
+    _sortIntermediateDataProgramId(0),
     _originalDataCopySsbo(nullptr),
     _intermediateDataFirstBuffer(nullptr),
     _intermediateDataSecondBuffer(nullptr),
@@ -60,7 +61,7 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort) :
     dataToSort->ConfigureUniforms(_originalDataToIntermediateDataProgramId);
 
     // on each loop in Sort(), pluck out a single bit and add it to the 
-    // PrefixScanBuffer::AllPrefixSums array
+    // PrefixScanBuffer::PrefixSumsWithinGroup array
     shaderKey = "get bit for prefix sums";
     shaderStorageRef.NewCompositeShader(shaderKey);
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/Version.comp");
@@ -69,13 +70,13 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort) :
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelSortConstants.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/IntermediateSortBuffers.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/PrefixScanBuffer.comp");
-    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/GetBitForPrefixSums.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/GetBitForPrefixScan.comp");
     shaderStorageRef.CompileCompositeShader(shaderKey, GL_COMPUTE_SHADER);
     shaderStorageRef.LinkShader(shaderKey);
-    _getBitForPrefixSumsProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
+    _getBitForPrefixScansProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
 
-    // run the prefix scan over PrefixScanBuffer::AllPrefixSums, and after run the scan again 
-    // over PrefixScanBuffer::PerGroupSums
+    // run the prefix scan over PrefixScanBuffer::PrefixSumsWithinGroup, and after run the scan again 
+    // over PrefixScanBuffer::PrefixSumsPerGroup
     shaderKey = "parallel prefix scan";
     shaderStorageRef.NewCompositeShader(shaderKey);
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/Version.comp");
@@ -88,18 +89,41 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort) :
     shaderStorageRef.LinkShader(shaderKey);
     _parallelPrefixScanProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
 
+    // and sort the "read" arry from IntermediateSortBuffers into the "write" array
+    // REQUIRES Version.comp
+    // REQUIRES ParallelSortConstants.comp
+    // - PARALLEL_SORT_WORK_GROUP_SIZE_X
+    // REQUIRES UniformLocations.comp
+    // REQUIRES SsboBufferBindings.comp
+    // REQUIRES IntermediateSortBuffers.comp
+    // REQUIRES PrefixScanBuffer.comp
+    shaderKey = "sort intermediate data";
+    shaderStorageRef.NewCompositeShader(shaderKey);
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/Version.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/UniformLocations.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/SsboBufferBindings.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelSortConstants.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/PrefixScanBuffer.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/IntermediateSortBuffers.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/SortIntermediateData.comp");
+    shaderStorageRef.CompileCompositeShader(shaderKey, GL_COMPUTE_SHADER);
+    shaderStorageRef.LinkShader(shaderKey);
+    _sortIntermediateDataProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
+
+
+
     unsigned int originalDataSize = dataToSort->NumItems();
     _originalDataCopySsbo = std::make_unique<OriginalDataCopySsbo>(originalDataSize);
     _prefixSumSsbo = std::make_unique<PrefixSumSsbo>(originalDataSize);
-    _prefixSumSsbo->ConfigureUniforms(_getBitForPrefixSumsProgramId);
+    _prefixSumSsbo->ConfigureUniforms(_getBitForPrefixScansProgramId);
     _prefixSumSsbo->ConfigureUniforms(_parallelPrefixScanProgramId);
 
     // see explanation in the PrefixSumSsbo constructor for why there are likely more entries in 
-    // PrefixScanBuffer::AllPrefixSums than the requested number of items that need sorting
+    // PrefixScanBuffer::PrefixSumsWithinGroup than the requested number of items that need sorting
     unsigned int numEntriesInPrefixSumBuffer = _prefixSumSsbo->NumDataEntries();
     _intermediateDataFirstBuffer = std::make_unique<IntermediateDataFirstBuffer>(numEntriesInPrefixSumBuffer);
     _intermediateDataFirstBuffer->ConfigureUniforms(_originalDataToIntermediateDataProgramId);
-    _intermediateDataFirstBuffer->ConfigureUniforms(_getBitForPrefixSumsProgramId);
+    _intermediateDataFirstBuffer->ConfigureUniforms(_getBitForPrefixScansProgramId);
     _intermediateDataSecondBuffer = std::make_unique<IntermediateDataSecondBuffer>(numEntriesInPrefixSumBuffer);
 
 }
@@ -137,21 +161,22 @@ void ParallelSort::Sort()
     printf("2\n");
 
     // copy the data back and check
-    std::vector<IntermediateData> checkIntermediateData(numItemsInPrefixScanBuffer);
-    unsigned int bufferSizeBytes = checkIntermediateData.size() * sizeof(IntermediateData);
+    std::vector<IntermediateData> checkUnsortedIntermediateData(numItemsInPrefixScanBuffer);
+    unsigned int bufferSizeBytes = checkUnsortedIntermediateData.size() * sizeof(IntermediateData);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataFirstBuffer->BufferId());
     void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-    memcpy(checkIntermediateData.data(), bufferPtr, bufferSizeBytes);
+    memcpy(checkUnsortedIntermediateData.data(), bufferPtr, bufferSizeBytes);
 
     printf("3\n");
 
 
     // getting 1 bit value from intermediate data to prefix sum is 1 item per thread
     start = high_resolution_clock::now();
-    glUseProgram(_getBitForPrefixSumsProgramId);
-    glUniform1ui(UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER, 1);
+    glUseProgram(_getBitForPrefixScansProgramId);
+    unsigned int readFromFirstIntermediateBuffer = 1;
     unsigned int bitOffset = 0;
+    glUniform1ui(UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER, readFromFirstIntermediateBuffer);
     glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitOffset);
     glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
     // TODO: ??would this work fast (and still work right) if the memory barrier were removed??
@@ -160,7 +185,8 @@ void ParallelSort::Sort()
     printf("4\n");
 
     // copy the data back and check
-    unsigned int totalPrefixSumItems = ITEMS_PER_WORK_GROUP + numItemsInPrefixScanBuffer;
+    // Note: The +1 is because of totalNumberOfOnes.
+    unsigned int totalPrefixSumItems = ITEMS_PER_WORK_GROUP + 1 + numItemsInPrefixScanBuffer;
     std::vector<unsigned int> checkPrefixScanBufferPreScan(totalPrefixSumItems);
     bufferSizeBytes = checkPrefixScanBufferPreScan.size() * sizeof(unsigned int);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
@@ -173,8 +199,17 @@ void ParallelSort::Sort()
     // parallel prefix scan is 2 items per thread
     start = high_resolution_clock::now();
     glUseProgram(_parallelPrefixScanProgramId);
+
+    // prefix scan over all values
     glUniform1ui(UNIFORM_LOCATION_CALCULATE_ALL, 1);
     glDispatchCompute(numWorkGroupsXByItemsPerWorkGroup, numWorkGroupsY, numWorkGroupsZ);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+    // prefix scan over per-work-group sums
+    // Note: The PrefixSumsPerGroup array is sized to be exactly enough for 1 work group.  It 
+    // makes the prefix sum easier than trying to eliminate excess threads.
+    glUniform1ui(UNIFORM_LOCATION_CALCULATE_ALL, 0);
+    glDispatchCompute(1, numWorkGroupsY, numWorkGroupsZ);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
     // copy the data back and check
@@ -185,10 +220,19 @@ void ParallelSort::Sort()
     memcpy(checkPrefixScanBufferPostScan.data(), bufferPtr, bufferSizeBytes);
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     unsigned int manualPrefixSum = 0;
-    for (unsigned int prefixSumIndex = ITEMS_PER_WORK_GROUP + 1; prefixSumIndex < checkPrefixScanBufferPostScan.size(); prefixSumIndex++)
+    for (unsigned int prefixSumIndex = 1; prefixSumIndex < _prefixSumSsbo->NumDataEntries(); prefixSumIndex++)
     {
-        // remember to account for the "per work group sums" that comes before the individual prefix scans
-        unsigned int currentPrefixSum = checkPrefixScanBufferPostScan[prefixSumIndex];
+
+    //}
+    //for (unsigned int prefixSumIndex = ITEMS_PER_WORK_GROUP + 2; prefixSumIndex < checkPrefixScanBufferPostScan.size(); prefixSumIndex++)
+    //{
+        // Note: Remember to account for the "per work group sums" that comes before the individual prefix scans.
+        // Also Note: Remember to account for uint totalNumberOfOnes.
+        unsigned int indexToCheck = ITEMS_PER_WORK_GROUP + 1 + prefixSumIndex;
+
+
+
+        unsigned int currentPrefixSum = checkPrefixScanBufferPostScan[indexToCheck];
 
         if (prefixSumIndex % ITEMS_PER_WORK_GROUP == 0)
         {
@@ -197,7 +241,7 @@ void ParallelSort::Sort()
         }
         else
         {
-            manualPrefixSum += checkPrefixScanBufferPreScan[prefixSumIndex - 1];
+            manualPrefixSum += checkPrefixScanBufferPreScan[indexToCheck - 1];
         }
 
         if (currentPrefixSum != manualPrefixSum)
@@ -206,101 +250,30 @@ void ParallelSort::Sort()
         }
     }
 
+    printf("6\n");
 
-    printf("");
+    // and sort the intermediate data with the scanned values
+    glUseProgram(_sortIntermediateDataProgramId);
+    glUniform1ui(UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER, readFromFirstIntermediateBuffer);
+    glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitOffset);
+    glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
+    // TODO: ??would this work fast (and still work right) if the memory barrier were removed??
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-
-    //// TODO: replace 512 with a constant
-    ////int threadsPerWorkGroup = 512;
-    ////int dataSizePerWorkGroup = threadsPerWorkGroup * 2;
-    ////int intArrByteOffset = dataSizePerWorkGroup * sizeof(unsigned int);
-    //int dataSize = _prefixSumSsbo->NumDataEntries();
-    //int PerGroupSumsDataSize = _prefixSumSsbo->NumPerGroupPrefixSums();
-    //int totalItems = PerGroupSumsDataSize + dataSize;
-    //std::vector<unsigned int> dataToSum;
-    ////for (int i = 0; i < numItems; i++)
-    //for (int i = 0; i < dataSize; i++)
-    //{
-    //    // this will push back an alternating assortment of 0s and 1s
-    //    dataToSum.push_back(i % 2);
-    //}
-    //std::random_shuffle(dataToSum.begin(), dataToSum.end());
-
-    //end = high_resolution_clock::now();
-    //cout << "generating " << dataSize << " numbers: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
-
-    //start = high_resolution_clock::now();
-    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
-    //unsigned int offsetBytes = PerGroupSumsDataSize * sizeof(unsigned int);
-    //unsigned int dataSizeBytes = dataToSum.size() * sizeof(unsigned int);
-    //glBufferSubData(GL_SHADER_STORAGE_BUFFER, offsetBytes, dataSizeBytes, dataToSum.data());
-    //end = high_resolution_clock::now();
-    //cout << "copying data: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
+    // copy the data back and check
+    std::vector<IntermediateData> checkSortedIntermediateData(numItemsInPrefixScanBuffer);
+    bufferSizeBytes = checkSortedIntermediateData.size() * sizeof(IntermediateData);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSecondBuffer->BufferId());
+    bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    memcpy(checkSortedIntermediateData.data(), bufferPtr, bufferSizeBytes);
 
 
-    //// TODO: replace hard-coded 512 with a constant from a header/compute-kosher include file
-    //// Note: Divide by "data size per work group" + 1 because, if the number of items == "data size per work group", then numWorkGroupsX = (X/X) + 1 = 2.  This is a corner case, but it needs to be accounted for.
-    //int numWorkGroupsX = (dataSize / (ITEMS_PER_WORK_GROUP + 1)) + 1;
-    //int numWorkGroupsY = 1;
-    //int numWorkGroupsZ = 1;
-
-    //start = high_resolution_clock::now();
-
-    //// calculate all the prefix sums and fill out each work group's PerGroupSums value
-    ////glUniform1ui(_unifLocMaxThreadCount, CalculateMaxThreadCount(numWorkGroupsX));
-    //glUniform1ui(_unifLocCalculateAll, 1);    
-    //glDispatchCompute(numWorkGroupsX, numWorkGroupsY, numWorkGroupsZ);
-
-    //// now run the prefix scan over the PerGroupSums array
-    //// Note: The PerGroupSums array is only the size of 1 work group, so hard-code 1s.
-    ////glUniform1ui(_unifLocMaxThreadCount, PARALLEL_SORT_WORK_GROUP_SIZE_X);
-    //glUniform1ui(_unifLocCalculateAll, 0);
-    //glDispatchCompute(1, 1, 1);
-    // 
-
-    ////glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    //end = high_resolution_clock::now();
-    //cout << "running prefix scan with " << (dataSize >> 1) << " threads over " << numWorkGroupsX << " work groups: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
-
-
-    ////int totalItems = dataSizePerWorkGroup + dataToSum.size();
-    //int bufferSizeBytes = totalItems * sizeof(unsigned int);
-
-    //start = high_resolution_clock::now();
-    //void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
-    //std::vector<unsigned int> v(totalItems);
-    //memcpy(v.data(), bufferPtr, bufferSizeBytes);
-    //end = high_resolution_clock::now();
-    //cout << "copying data back: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
-
-    //// check the GPU's results
-    //start = high_resolution_clock::now();
-    //unsigned int manualPrefixSum = 0;
-    //for (unsigned int prefixSumIndex = 1; prefixSumIndex < dataToSum.size(); prefixSumIndex++)
-    //{
-    //    // remember to account for the "per work group sums" that comes before the individual prefix scans
-    //    unsigned int currentPrefixSum = v[ITEMS_PER_WORK_GROUP + prefixSumIndex];
-
-    //    if (prefixSumIndex % ITEMS_PER_WORK_GROUP == 0)
-    //    {
-    //        // reset
-    //        manualPrefixSum = 0;
-    //    }
-    //    else
-    //    {
-    //        manualPrefixSum += dataToSum[prefixSumIndex - 1];
-    //    }
-
-    //    if (currentPrefixSum != manualPrefixSum)
-    //    {
-    //        printf("");
-    //    }
-    //}
 
     //end = high_resolution_clock::now();
     //cout << "verifying data: " << duration_cast<microseconds>(end - start).count() << " microseconds" << endl;
 
-    //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    printf("");
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     glUseProgram(0);

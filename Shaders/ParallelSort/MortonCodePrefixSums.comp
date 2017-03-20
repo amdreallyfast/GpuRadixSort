@@ -64,7 +64,7 @@ uniform uint uNumWorkGroups
 layout (std430) buffer PrefixSumsBuffer
 {
     // 30bit Morton Code => 15 bit pairs, 4 possible values per bit pair (0-3)
-    uint AllPrefixSums[][15][4];
+    uint PrefixSumsWithinGroup[][15][4];
 }
 
 /*------------------------------------------------------------------------------------------------
@@ -73,12 +73,12 @@ Description:
     current index.
 
     Ex: 0x001101010011
-    bitPair = 0, bit pair is 11 => increment AllPrefixSums[workGroup][0][3] + 1
-    bitPair = 1, bit pair is 00 => increment AllPrefixSums[workGroup][1][0] + 1
-    bitPair = 2, bit pair is 01 => increment AllPrefixSums[workGroup][2][1] + 1
-    bitPair = 3, bit pair is 01 => increment AllPrefixSums[workGroup][3][1] + 1
-    bitPair = 4, bit pair is 11 => increment AllPrefixSums[workGroup][4][3] + 1
-    bitPair = 5, bit pair is 00 => increment AllPrefixSums[workGroup][5][0] + 1
+    bitPair = 0, bit pair is 11 => increment PrefixSumsWithinGroup[workGroup][0][3] + 1
+    bitPair = 1, bit pair is 00 => increment PrefixSumsWithinGroup[workGroup][1][0] + 1
+    bitPair = 2, bit pair is 01 => increment PrefixSumsWithinGroup[workGroup][2][1] + 1
+    bitPair = 3, bit pair is 01 => increment PrefixSumsWithinGroup[workGroup][3][1] + 1
+    bitPair = 4, bit pair is 11 => increment PrefixSumsWithinGroup[workGroup][4][3] + 1
+    bitPair = 5, bit pair is 00 => increment PrefixSumsWithinGroup[workGroup][5][0] + 1
 Parameters: 
     number          The 30bit Morton Code under consideration
     bitPair   0-14 (bits 0 and 1, bits 1 and 2, bits 3 and 4, ..., bits 28 and 29)
@@ -98,7 +98,7 @@ void AddPrefixSum(uint number, uint bitPair, uint workGroupIndex)
 
     // there may be other threads in this group all writing to this value at the same time, so 
     // use an atomic addition
-    atomicAdd(AllPrefixSums[workGroupIndex][bitPair][bitpairIndex], 1);
+    atomicAdd(PrefixSumsWithinGroup[workGroupIndex][bitPair][bitpairIndex], 1);
 }
 
 /*------------------------------------------------------------------------------------------------
