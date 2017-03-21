@@ -76,6 +76,11 @@ void main()
     // the right index
     uint prefixSumOfZeros = PrefixSumsPerGroup[gl_WorkGroupID.x / 2] + PrefixSumsWithinGroup[threadIndex];
     //uint prefixSumOfZeros = PrefixSumsPerGroup[0] + PrefixSumsWithinGroup[threadIndex];
+    
+
+    // TODO: go back to counting 1s and 0s and don't flip them in GetBitForPrefixScan.comp
+    //uint prefixSumOfOnes = threadIndex - prefixSumOfZeros;
+
 
     // I don't have an intuitive explanation of why this works, but it does.  
     //??why does this work? from GPU Gems 3, section 39.3.3 Radix Sort??

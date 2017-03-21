@@ -42,6 +42,10 @@ void main()
         bitVal = (AllIntermediateDataFirstBuffer[threadIndex]._data >> uBitNumber) & 1;
     }
 
+
+
+
+
     // Note: The radix sorting procedure described in the GPU Gems 3 article on parallel prefix 
     // scan that inspired this demo runs the prefix scan on the number of 0s, not the numbers of 
     // 1s as is normally done in a prefix scan.  But ParallelPrefixScan doesn't need to know 

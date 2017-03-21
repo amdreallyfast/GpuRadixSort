@@ -128,7 +128,24 @@ PrefixSumSsbo::PrefixSumSsbo(unsigned int numDataEntries) :
     // for a prefix sum though might not be a power of 2.  To deal with this, make sure that 
     // there is always a work group for the data to be in (hence the +1), and that entries that 
     // are not part of the data set are set to 0.
-    _numDataEntries = ((numDataEntries / ITEMS_PER_WORK_GROUP) + 1) * ITEMS_PER_WORK_GROUP;
+    //_numDataEntries = ((numDataEntries / ITEMS_PER_WORK_GROUP) + 1) * ITEMS_PER_WORK_GROUP;
+    
+    
+    // Note: If the user passes in a data set of size 0, then the resultant number of data entries will be 0 and the sorting process will go nowhere.  At least it won't crash.
+    // TODO: test this
+    if (numDataEntries % ITEMS_PER_WORK_GROUP == 0)
+    {
+        // data size evenly divides 
+        _numDataEntries = numDataEntries / ITEMS_PER_WORK_GROUP;
+    }
+    else
+    {
+        // data size does not evenly divide, so give remainder data their own work group
+        _numDataEntries = (numDataEntries / ITEMS_PER_WORK_GROUP) + 1;
+    }
+    _numDataEntries *= ITEMS_PER_WORK_GROUP;
+
+    printf("");
 
     // Note: The individual work groups' prefix sums are rather useless without the results of 
     // each work group being tallied, so there is one more chunk of data that will store the 

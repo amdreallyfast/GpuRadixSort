@@ -192,8 +192,33 @@ void ParallelSort::Sort()
     // Also Note: +1 to work group size so that a data set size that is an exact multiple of the 
     // work group size doesn't get an extra work group.
     unsigned int numItemsInPrefixScanBuffer = _prefixSumSsbo->NumDataEntries();
-    int numWorkGroupsXByWorkGroupSize = (numItemsInPrefixScanBuffer / (PARALLEL_SORT_WORK_GROUP_SIZE_X + 1)) + 1;
-    int numWorkGroupsXByItemsPerWorkGroup = (numItemsInPrefixScanBuffer / (ITEMS_PER_WORK_GROUP + 1)) + 1;
+    //int numWorkGroupsXByWorkGroupSize = (numItemsInPrefixScanBuffer / (PARALLEL_SORT_WORK_GROUP_SIZE_X + 1)) + 1;
+    //int numWorkGroupsXByItemsPerWorkGroup = (numItemsInPrefixScanBuffer / (ITEMS_PER_WORK_GROUP + 1)) + 1;
+
+    int numWorkGroupsXByItemsPerWorkGroup = 0;
+    if (numItemsInPrefixScanBuffer % ITEMS_PER_WORK_GROUP == 0)
+    {
+        // data size evenly divides 
+        numWorkGroupsXByItemsPerWorkGroup = numItemsInPrefixScanBuffer / ITEMS_PER_WORK_GROUP;
+    }
+    else
+    {
+        // data size does not evenly divide, so give remainder data their own work group
+        numWorkGroupsXByItemsPerWorkGroup = (numItemsInPrefixScanBuffer / ITEMS_PER_WORK_GROUP) + 1;
+    }
+
+    int numWorkGroupsXByWorkGroupSize = 0;
+    if (numItemsInPrefixScanBuffer % PARALLEL_SORT_WORK_GROUP_SIZE_X == 0)
+    {
+        // data size evenly divides 
+        numWorkGroupsXByWorkGroupSize = numItemsInPrefixScanBuffer / PARALLEL_SORT_WORK_GROUP_SIZE_X;
+    }
+    else
+    {
+        // data size does not evenly divide, so give remainder data their own work group
+        numWorkGroupsXByWorkGroupSize = (numItemsInPrefixScanBuffer / PARALLEL_SORT_WORK_GROUP_SIZE_X) + 1;
+    }
+
     int numWorkGroupsY = 1;
     int numWorkGroupsZ = 1;
 
@@ -342,7 +367,7 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
     // moving original data to intermediate data is 1 item per thread
     start = high_resolution_clock::now();
     glUseProgram(_originalDataToIntermediateDataProgramId);
-    glDispatchCompute(numWorkGroupsXByWorkGroupSize + 1, numWorkGroupsY, numWorkGroupsZ);
+    glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 
@@ -375,7 +400,7 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
         glUseProgram(_getBitForPrefixScansProgramId);
         glUniform1ui(UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER, readBufferNumber);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
-        glDispatchCompute(numWorkGroupsXByWorkGroupSize + 1, numWorkGroupsY, numWorkGroupsZ);
+        glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         //// copy the data back and check
@@ -428,7 +453,7 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
         glUseProgram(_sortIntermediateDataProgramId);
         glUniform1ui(UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER, readBufferNumber);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
-        glDispatchCompute(numWorkGroupsXByWorkGroupSize + 1, numWorkGroupsY, numWorkGroupsZ);
+        glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 
@@ -514,6 +539,11 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
         unsigned int val = checkIntermediateWriteBuffer[i]._data;
         unsigned int prevVal = checkIntermediateWriteBuffer[i - 1]._data;
 
+        if (val == 0xffffffff)
+        {
+            // this was extra data that was padded on
+            continue;
+        }
         if (val != prevVal + 1)
         {
             printf("");
