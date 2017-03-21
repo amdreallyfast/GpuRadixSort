@@ -50,16 +50,34 @@ void CalculatePrefixSumsWithinGroup()
 
     uint indexMultiplierDueToDepth = 1;
     uint loopCounter = 0;
+    uint lesserIndex = 0;
+    uint greaterIndex = 0;
     for (int dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
     {
         barrier();
 
         if (gl_LocalInvocationID.x < dataPairs)
         {
-            uint lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-            uint greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            //uint lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            //uint greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
-            PrefixSumsWithinGroup[greaterIndex] += PrefixSumsWithinGroup[lesserIndex];
+            if (gl_WorkGroupID.x == 256)
+            {
+                PrefixSumsWithinGroup[greaterIndex] += PrefixSumsWithinGroup[lesserIndex];
+                //if (PrefixSumsWithinGroup[greaterIndex] < 512)
+                {
+                    PrefixSumsPerGroup[256] = PrefixSumsWithinGroup[greaterIndex];
+                    //PrefixSumsPerGroup[257] = dataPairs;
+                }
+            }
+            else
+            {
+                PrefixSumsWithinGroup[greaterIndex] += PrefixSumsWithinGroup[lesserIndex];
+            }
+            
+
         }
         indexMultiplierDueToDepth *= 2;
     }
@@ -67,7 +85,11 @@ void CalculatePrefixSumsWithinGroup()
     // only one thread should do these (prevents unnecessary writes)
     if (doubleGroupThreadIndex == 0)
     {
-        PrefixSumsPerGroup[gl_WorkGroupID.x] = PrefixSumsWithinGroup[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1];
+        if (gl_WorkGroupID.x != 256)
+        {
+            PrefixSumsPerGroup[gl_WorkGroupID.x] = PrefixSumsWithinGroup[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1];
+        }
+        
         PrefixSumsWithinGroup[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1] = 0;
     }
     indexMultiplierDueToDepth >>= 1;

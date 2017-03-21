@@ -130,6 +130,57 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort) :
 
 }
 
+#include <math.h>
+static void printRepeating(std::vector<IntermediateData> &arr)
+{
+    int i;
+    printf("The repeating elements are: \n");
+    for (i = 0; i < arr.size(); i++)
+    {
+        if (arr[i]._data == -1)
+        {
+            continue;
+        }
+
+        int temp = arr[i]._data;
+        temp = abs(temp);
+        temp = arr[temp]._data;
+
+        int index = arr[i]._data;
+        index = abs(index);
+        int val = arr[index]._data;
+        if (val >= 0)
+            arr[index]._data = -arr[index]._data;
+        else
+            printf(" - %d at index %d\n", abs(val), index);
+    }
+}
+
+static void FindIndex(std::vector<IntermediateData> &arr, unsigned int value)
+{
+    for (size_t i = 0; i < arr.size(); i++)
+    {
+        if (arr[i]._data == value)
+        {
+            printf("found value %u at index %u\n", value, i);
+        }
+    }
+}
+
+static void FindIndex(std::vector<unsigned int> &arr, unsigned int value)
+{
+    for (size_t i = 0; i < arr.size(); i++)
+    {
+        if (arr[i] == value)
+        {
+            printf("found value %u at index %u\n", value, i);
+        }
+    }
+}
+
+
+
+
 // TODO: header
 void ParallelSort::Sort()
 {
@@ -282,7 +333,7 @@ unsigned int bufferSizeBytes = 0;
 void *bufferPtr = 0;
 
 unsigned int totalPrefixSumItems = ITEMS_PER_WORK_GROUP + 1 + numItemsInPrefixScanBuffer;
-//std::vector<unsigned int> checkPrefixScanBufferPreScan(totalPrefixSumItems);
+std::vector<unsigned int> checkPrefixScanBufferPreScan(totalPrefixSumItems);
 std::vector<unsigned int> checkPrefixScanBufferPostScan(totalPrefixSumItems);
 std::vector<IntermediateData> checkIntermediateReadBuffer(numItemsInPrefixScanBuffer);
 std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanBuffer);
@@ -291,7 +342,7 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
     // moving original data to intermediate data is 1 item per thread
     start = high_resolution_clock::now();
     glUseProgram(_originalDataToIntermediateDataProgramId);
-    glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
+    glDispatchCompute(numWorkGroupsXByWorkGroupSize + 1, numWorkGroupsY, numWorkGroupsZ);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 
@@ -301,6 +352,8 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
     //bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
     //memcpy(checkIntermediateReadBuffer.data(), bufferPtr, bufferSizeBytes);
     //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+    printRepeating(checkIntermediateReadBuffer);
 
     //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSecondBuffer->BufferId());
     //bufferSizeBytes = checkIntermediateWriteBuffer.size() * sizeof(IntermediateData);
@@ -322,7 +375,7 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
         glUseProgram(_getBitForPrefixScansProgramId);
         glUniform1ui(UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER, readBufferNumber);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
-        glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
+        glDispatchCompute(numWorkGroupsXByWorkGroupSize + 1, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         //// copy the data back and check
@@ -344,12 +397,15 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
         glDispatchCompute(numWorkGroupsXByItemsPerWorkGroup, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-        //// copy the data back and check
+        //// copy the data back and check (using "pre scan" to refer to prior to per-work-group sums)
         //bufferSizeBytes = checkPrefixScanBufferPostScan.size() * sizeof(unsigned int);
         //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
         //bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
         //memcpy(checkPrefixScanBufferPostScan.data(), bufferPtr, bufferSizeBytes);
         //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+        //FindIndex(checkPrefixScanBufferPreScan, 131072);
+        //FindIndex(checkPrefixScanBufferPostScan, 131072);
 
         // prefix scan over per-work-group sums
         // Note: The PrefixSumsPerGroup array is sized to be exactly enough for 1 work group.  It 
@@ -358,12 +414,12 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
         glDispatchCompute(1, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
-        // copy the data back and check
-        bufferSizeBytes = checkPrefixScanBufferPostScan.size() * sizeof(unsigned int);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
-        bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
-        memcpy(checkPrefixScanBufferPostScan.data(), bufferPtr, bufferSizeBytes);
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        //// copy the data back and check
+        //bufferSizeBytes = checkPrefixScanBufferPostScan.size() * sizeof(unsigned int);
+        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
+        //bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
+        //memcpy(checkPrefixScanBufferPostScan.data(), bufferPtr, bufferSizeBytes);
+        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
 
 
@@ -372,50 +428,63 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
         glUseProgram(_sortIntermediateDataProgramId);
         glUniform1ui(UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER, readBufferNumber);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
-        glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
+        glDispatchCompute(numWorkGroupsXByWorkGroupSize + 1, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
 
 
 
-        // copy the data back and check
-        if (readFromFirstIntermediateBuffer)
-        {
-            // read from first buffer, written to second
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataFirstBuffer->BufferId());
-            bufferSizeBytes = checkIntermediateReadBuffer.size() * sizeof(IntermediateData);
-            bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
-            memcpy(checkIntermediateReadBuffer.data(), bufferPtr, bufferSizeBytes);
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        //// copy the data back and check
+        //if (readFromFirstIntermediateBuffer)
+        //{
+        //    // read from first buffer, written to second
+        //    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataFirstBuffer->BufferId());
+        //    bufferSizeBytes = checkIntermediateReadBuffer.size() * sizeof(IntermediateData);
+        //    bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
+        //    memcpy(checkIntermediateReadBuffer.data(), bufferPtr, bufferSizeBytes);
+        //    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSecondBuffer->BufferId());
-            bufferSizeBytes = checkIntermediateWriteBuffer.size() * sizeof(IntermediateData);
-            bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
-            memcpy(checkIntermediateWriteBuffer.data(), bufferPtr, bufferSizeBytes);
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        }
-        else
-        {
-            // read from second buffer, written to first 
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSecondBuffer->BufferId());
-            bufferSizeBytes = checkIntermediateReadBuffer.size() * sizeof(IntermediateData);
-            bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
-            memcpy(checkIntermediateReadBuffer.data(), bufferPtr, bufferSizeBytes);
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER); 
+        //    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSecondBuffer->BufferId());
+        //    bufferSizeBytes = checkIntermediateWriteBuffer.size() * sizeof(IntermediateData);
+        //    bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
+        //    memcpy(checkIntermediateWriteBuffer.data(), bufferPtr, bufferSizeBytes);
+        //    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        //}
+        //else
+        //{
+        //    // read from second buffer, written to first 
+        //    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSecondBuffer->BufferId());
+        //    bufferSizeBytes = checkIntermediateReadBuffer.size() * sizeof(IntermediateData);
+        //    bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
+        //    memcpy(checkIntermediateReadBuffer.data(), bufferPtr, bufferSizeBytes);
+        //    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER); 
 
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataFirstBuffer->BufferId());
-            bufferSizeBytes = checkIntermediateWriteBuffer.size() * sizeof(IntermediateData);
-            bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
-            memcpy(checkIntermediateWriteBuffer.data(), bufferPtr, bufferSizeBytes);
-            glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        }
+        //    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataFirstBuffer->BufferId());
+        //    bufferSizeBytes = checkIntermediateWriteBuffer.size() * sizeof(IntermediateData);
+        //    bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
+        //    memcpy(checkIntermediateWriteBuffer.data(), bufferPtr, bufferSizeBytes);
+        //    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        //}
 
-
+        //size_t startIndex = 256 * 512;
+        //size_t endIndex = 257 * 512;
+        //unsigned int counter = 0;
+        //for (size_t intCounter = startIndex; intCounter < endIndex; intCounter++)
+        //{
+        //    if (checkPrefixScanBufferPreScan[intCounter] != 0)
+        //    {
+        //        counter++;
+        //    }
+        //}
 
         // now switch intermediate buffers and do it again
         readFromFirstIntermediateBuffer = !readFromFirstIntermediateBuffer;
 
+        //printf("Bit number %d: ", bitNumber);
+        //printRepeating(checkIntermediateWriteBuffer);
+        //FindIndex(checkIntermediateWriteBuffer, 65537);
 
+        printf("-\n");
     }
 
     // copy the data back and check

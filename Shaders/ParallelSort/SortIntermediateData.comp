@@ -98,19 +98,21 @@ void main()
     {
         // read from second buffer, write to first
         AllIntermediateDataFirstBuffer[destinationIndex] = AllIntermediateDataSecondBuffer[threadIndex];
-        AllIntermediateDataFirstBuffer[destinationIndex]._globalIndexOfOriginalData = threadIndex;
-
-        //AllIntermediateDataSecondBuffer[threadIndex]._data = bitVal;
-        //AllIntermediateDataFirstBuffer[threadIndex]._data = prefixSumOfZeros;
+        
+        // debugging
+        //AllIntermediateDataFirstBuffer[destinationIndex]._globalIndexOfOriginalData = threadIndex;
+        //AllIntermediateDataSecondBuffer[threadIndex]._data = prefixSumOfZeros;
+        //AllIntermediateDataSecondBuffer[threadIndex]._globalIndexOfOriginalData = destinationIndex;
     }
     else
     {
         // read from first buffer, write to second
         AllIntermediateDataSecondBuffer[destinationIndex] = AllIntermediateDataFirstBuffer[threadIndex];
-        AllIntermediateDataSecondBuffer[destinationIndex]._globalIndexOfOriginalData = threadIndex;
 
-        //AllIntermediateDataFirstBuffer[threadIndex]._data = bitVal;
-        //AllIntermediateDataSecondBuffer[threadIndex]._data = prefixSumOfZeros;
+        // debugging
+        //AllIntermediateDataSecondBuffer[destinationIndex]._globalIndexOfOriginalData = threadIndex;
+        //AllIntermediateDataFirstBuffer[threadIndex]._data = prefixSumOfZeros;
+//        AllIntermediateDataFirstBuffer[threadIndex]._globalIndexOfOriginalData = destinationIndex;
     }
 
 }

@@ -58,7 +58,31 @@ FreeTypeEncapsulated gTextAtlases;
 OriginalDataSsbo::UNIQUE_PTR originalData = nullptr;
 std::unique_ptr<ParallelSort> parallelSort = nullptr;
 
-const unsigned int MAX_DATA_COUNT = 262145;
+//const unsigned int MAX_DATA_COUNT = 262144;
+//const unsigned int MAX_DATA_COUNT = 262145;
+const unsigned int MAX_DATA_COUNT = 1000000;
+
+
+#include <math.h>
+static void printRepeating(std::vector<OriginalData> &arr)
+{
+    int i;
+    printf("The repeating elements are: \n");
+    for (i = 0; i < arr.size(); i++)
+    {
+        int temp = arr[i]._value;
+        temp = abs(temp);
+        temp = arr[temp]._value;
+
+        int index = arr[i]._value;
+        index = abs(index);
+        int val = arr[index]._value;
+        if (val >= 0)
+            arr[index]._value = -arr[index]._value;
+        else
+            printf("- %d at index %d\n", abs(val), index);
+    }
+}
 
 /*------------------------------------------------------------------------------------------------
 Description:
@@ -144,13 +168,16 @@ void Init()
 
         //demoData[dataIndex]._value = dataIndex * 2;
     }
-    std::random_shuffle(demoData.begin(), demoData.end());
+    //std::random_shuffle(demoData.begin(), demoData.end());
+
+    //printRepeating(demoData);
 
     // upload the data
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, originalData->BufferId());
     unsigned int bufferSizeBytes = demoData.size() * sizeof(OriginalData);
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, demoData.data());
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
 
 
     parallelSort = std::make_unique<ParallelSort>(originalData);
@@ -357,7 +384,7 @@ int main(int argc, char *argv[])
     glutInitContextProfile(GLUT_CORE_PROFILE);
 
     // enable this for automatic message reporting (see OpenGlErrorHandling.cpp)
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
     glutInitContextFlags(GLUT_DEBUG);
 #endif

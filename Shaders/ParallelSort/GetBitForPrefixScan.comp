@@ -30,27 +30,30 @@ void main()
     uint bitMask = 1 << uBitNumber;
 
     uint bitVal = 0;
-    uint index = gl_GlobalInvocationID.x;
+    uint threadIndex = gl_GlobalInvocationID.x;
     if (uReadFromFirstIntermediateBuffer == 0)
     {
-        bitVal = AllIntermediateDataSecondBuffer[index]._data & bitMask;
+        //bitVal = AllIntermediateDataSecondBuffer[index]._data & bitMask;
+        bitVal = (AllIntermediateDataSecondBuffer[threadIndex]._data >> uBitNumber) & 1;
     }
     else 
     {
-        bitVal = AllIntermediateDataFirstBuffer[index]._data & bitMask;
+        //bitVal = AllIntermediateDataFirstBuffer[index]._data & bitMask;
+        bitVal = (AllIntermediateDataFirstBuffer[threadIndex]._data >> uBitNumber) & 1;
     }
 
     // Note: The radix sorting procedure described in the GPU Gems 3 article on parallel prefix 
     // scan that inspired this demo runs the prefix scan on the number of 0s, not the numbers of 
     // 1s as is normally done in a prefix scan.  But ParallelPrefixScan doesn't need to know 
     // that :).  It just needs 0s and 1s.  For application, see SortIntermediateData.comp.
+    PrefixSumsWithinGroup[threadIndex] = 0;
     if (bitVal == 0)
     {
-        PrefixSumsWithinGroup[index] = 1;
+        PrefixSumsWithinGroup[threadIndex] = 1;
     }
     else
     {
-        PrefixSumsWithinGroup[index] = 0;
+        PrefixSumsWithinGroup[threadIndex] = 0;
     }
 
     // clear out the PrefixSumsPerGroup array

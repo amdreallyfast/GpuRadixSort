@@ -34,12 +34,12 @@ void main()
     // back.  
 
     IntermediateData newThing;
-    uint index = gl_GlobalInvocationID.x;
-    newThing._globalIndexOfOriginalData = index;
+    uint threadIndex = gl_GlobalInvocationID.x;
+    newThing._globalIndexOfOriginalData = threadIndex;
 
-    if (index < uOriginalDataBufferSize)
+    if (threadIndex < uOriginalDataBufferSize)
     {
-        newThing._data = AllOriginalData[index]._value;
+        newThing._data = AllOriginalData[threadIndex]._value;
     }
     else    // >= uOriginalDataBufferSize
     {
@@ -48,7 +48,7 @@ void main()
 
     // this is the beginning of the sorting, so put the values into the first buffer, no 
     // questions asked
-    AllIntermediateDataFirstBuffer[index] = newThing;
+    AllIntermediateDataFirstBuffer[threadIndex] = newThing;
 
 
     // MAKE SURE now that the uniform uReadFromFirstIntermediateBuffer in 
