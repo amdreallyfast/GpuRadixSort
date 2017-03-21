@@ -50,18 +50,24 @@ void main()
 
     uint bitVal = 0;
     uint threadIndex = gl_GlobalInvocationID.x;
+
+//    if (threadIndex >= 16)
+//    {
+//        return;
+//    }
+
+
     if (uReadFromFirstIntermediateBuffer == 0)
     {
-        bitVal = (AllIntermediateDataSecondBuffer[threadIndex]._data & bitMask);
+        bitVal = (AllIntermediateDataSecondBuffer[threadIndex]._data >> uBitNumber) & 1;
     }
     else 
     {
-        bitVal = (AllIntermediateDataFirstBuffer[threadIndex]._data & bitMask);
+        bitVal = (AllIntermediateDataFirstBuffer[threadIndex]._data >> uBitNumber) & 1;
     }
 
-    // this variable, as trivial as it is, was intoduced to try alieve confusion
-    // Note: See function Description for explanation
-    //uint totalNumberOfZeros = PrefixScanBuffer::totalNumberOfOnes;
+    // this variable, as trivial as it is, was intoduced to try to alieve confusion
+    // Note: See function Description for explanation.
     uint totalNumberOfZeros = totalNumberOfOnes;
 
     // remember that, during prefix scan, each thread works on 2 items, so the number of data 
@@ -69,6 +75,7 @@ void main()
     // shader has only 1 thread per IntermediateData object, so half the work group ID to get 
     // the right index
     uint prefixSumOfZeros = PrefixSumsPerGroup[gl_WorkGroupID.x / 2] + PrefixSumsWithinGroup[threadIndex];
+    //uint prefixSumOfZeros = PrefixSumsPerGroup[0] + PrefixSumsWithinGroup[threadIndex];
 
     // I don't have an intuitive explanation of why this works, but it does.  
     //??why does this work? from GPU Gems 3, section 39.3.3 Radix Sort??
@@ -89,11 +96,21 @@ void main()
     // do the write
     if (uReadFromFirstIntermediateBuffer == 0)
     {
+        // read from second buffer, write to first
         AllIntermediateDataFirstBuffer[destinationIndex] = AllIntermediateDataSecondBuffer[threadIndex];
+        AllIntermediateDataFirstBuffer[destinationIndex]._globalIndexOfOriginalData = threadIndex;
+
+        //AllIntermediateDataSecondBuffer[threadIndex]._data = bitVal;
+        //AllIntermediateDataFirstBuffer[threadIndex]._data = prefixSumOfZeros;
     }
     else
     {
+        // read from first buffer, write to second
         AllIntermediateDataSecondBuffer[destinationIndex] = AllIntermediateDataFirstBuffer[threadIndex];
+        AllIntermediateDataSecondBuffer[destinationIndex]._globalIndexOfOriginalData = threadIndex;
+
+        //AllIntermediateDataFirstBuffer[threadIndex]._data = bitVal;
+        //AllIntermediateDataSecondBuffer[threadIndex]._data = prefixSumOfZeros;
     }
 
 }

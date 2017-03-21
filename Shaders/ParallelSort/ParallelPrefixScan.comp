@@ -221,6 +221,7 @@ void PrefixSumOnPrefixSumsPerGroup()
     if (doubleGroupThreadIndex == 0)
     {
         totalNumberOfOnes = PrefixSumsPerGroup[ITEMS_PER_WORK_GROUP - 1];
+        //totalNumberOfOnes = 37;
         PrefixSumsPerGroup[ITEMS_PER_WORK_GROUP - 1] = 0;
     }
     indexMultiplierDueToDepth >>= 1;

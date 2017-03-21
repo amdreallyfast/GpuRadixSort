@@ -58,7 +58,7 @@ FreeTypeEncapsulated gTextAtlases;
 OriginalDataSsbo::UNIQUE_PTR originalData = nullptr;
 std::unique_ptr<ParallelSort> parallelSort = nullptr;
 
-const unsigned int MAX_DATA_COUNT = 2000;
+const unsigned int MAX_DATA_COUNT = 262145;
 
 /*------------------------------------------------------------------------------------------------
 Description:
@@ -117,10 +117,32 @@ void Init()
 
     // generate dummy data for this demo
     std::vector<OriginalData> demoData(originalData->NumItems());
+    //demoData[0]._value = 12;
+    //demoData[1]._value = 1;
+    //demoData[2]._value = 9;
+    //demoData[3]._value = 2;
+    //demoData[4]._value = 0;
+    //demoData[5]._value = 11;
+    //demoData[6]._value = 7;
+    //demoData[7]._value = 3;
+    //demoData[8]._value = 4;
+    //demoData[9]._value = 15;
+    //demoData[10]._value = 8;
+    //demoData[11]._value = 5;
+    //demoData[12]._value = 14;
+    //demoData[13]._value = 13;
+    //demoData[14]._value = 10;
+    //demoData[15]._value = 6;
+
+
     for (size_t dataIndex = 0; dataIndex < demoData.size(); dataIndex++)
     {
         // just putting in alternating 1s and 0s
-        demoData[dataIndex]._value = dataIndex % 2;
+        //demoData[dataIndex]._value = dataIndex % 2;
+        
+        demoData[dataIndex]._value = dataIndex;
+
+        //demoData[dataIndex]._value = dataIndex * 2;
     }
     std::random_shuffle(demoData.begin(), demoData.end());
 

@@ -52,4 +52,19 @@ void main()
     {
         PrefixSumsWithinGroup[index] = 0;
     }
+
+    // clear out the PrefixSumsPerGroup array
+    // Note: This is more than just cleanup.  The ParallelPrefixScan on all the data will only 
+    // fill out the per-work-group sum for each work group in use, not for each work group that 
+    // is not in use.  If the sums of the work groups that are not in use are not cleared, then 
+    // the subsequent scan of all per-work-group sums will give an erroneous value to 
+    // PrefixScanBuffer::totalNumberOfOnes.
+    // Also Note: The only thread count guarantee in this shader is that it will be at least the
+    // size of 1 work group (the PrefixScanBuffer::PrefixSumsPerGroup array is twice this size), 
+    // so only let work group 0 do this setting to 0.
+    if (gl_WorkGroupID.x == 0)
+    {
+        PrefixSumsPerGroup[(gl_LocalInvocationID.x * 2)] = 0;
+        PrefixSumsPerGroup[(gl_LocalInvocationID.x * 2) + 1] = 0;
+    }
 }
