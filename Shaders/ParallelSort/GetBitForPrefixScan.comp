@@ -27,51 +27,61 @@ void main()
     // Note: Thread count should be the size of the PrefixScanBuffer::PrefixSumsWithinGroup array.  The 
     // uniform uIntermediateBufferSize should be the same value, so either will work.
 
-    uint bitMask = 1 << uBitNumber;
-
-    uint bitVal = 0;
+    // this calculation eliminates an older if-then conditional branch to select buffer 1 or buffer 2 (TODO: ??performance increase??)
     uint threadIndex = gl_GlobalInvocationID.x;
-    if (uReadFromFirstIntermediateBuffer == 0)
-    {
-        //bitVal = AllIntermediateDataSecondBuffer[index]._data & bitMask;
-        bitVal = (AllIntermediateDataSecondBuffer[threadIndex]._data >> uBitNumber) & 1;
-    }
-    else 
-    {
-        //bitVal = AllIntermediateDataFirstBuffer[index]._data & bitMask;
-        bitVal = (AllIntermediateDataFirstBuffer[threadIndex]._data >> uBitNumber) & 1;
-    }
+    uint readFromSecondBuffer = uint(!bool(uWriteToSecondIntermediateBuffer));
+    threadIndex += (readFromSecondBuffer * uIntermediateBufferHalfSize);
+
+    //if (uReadFromFirstIntermediateBuffer == 0)
+    //{
+    //    //bitVal = AllIntermediateDataSecondBuffer[index]._data & bitMask;
+    //    bitVal = (AllIntermediateDataSecondBuffer[threadIndex]._data >> uBitNumber) & 1;
+    //}
+    //else 
+    //{
+    //    //bitVal = AllIntermediateDataFirstBuffer[index]._data & bitMask;
+    //    bitVal = (AllIntermediateDataFirstBuffer[threadIndex]._data >> uBitNumber) & 1;
+    //}
+
+    // extract the bit value, NOT the positional bit value
+    // Ex: What is the value of the 3rd bit in 0b101011?
+    // The bit value at bit 3 is 0b101011 & 0b001000 = 0b001000 = 8.
+    // The positional bit value at bit 3 is (0b101011 >> 3) & 0b000001 = 0b000101 & 0b000001 = 1;
+    // Two very different values.  Radix Sort sorts by bit values, not by positional bit values, 
+    // so use the second approach.
+    // Also Note: The "& 1" is very important.  This is 32bit land (at the time of this demo), 
+    // so there are 31 0s to left of the 1, and they will strip off any additional 1s in the 
+    // value, leaving just the value of the desired bit.
+    uint bitVal = (IntermediateDataBuffer[threadIndex]._data >> uBitNumber) & 1;
+    PrefixSumsWithinGroup[threadIndex] = bitVal;
 
 
-    // TODO: don't flip the bits; you can use the global thread ID to calculate the prefix sum of 0s from the prefix sum of 1s in SortIntermediateData.comp
 
-
-
-    // Note: The radix sorting procedure described in the GPU Gems 3 article on parallel prefix 
-    // scan that inspired this demo runs the prefix scan on the number of 0s, not the numbers of 
-    // 1s as is normally done in a prefix scan.  But ParallelPrefixScan doesn't need to know 
-    // that :).  It just needs 0s and 1s.  For application, see SortIntermediateData.comp.
-    PrefixSumsWithinGroup[threadIndex] = 0;
-    if (bitVal == 0)
-    {
-        PrefixSumsWithinGroup[threadIndex] = 1;
-    }
-    else
-    {
-        PrefixSumsWithinGroup[threadIndex] = 0;
-    }
+    //// Note: The radix sorting procedure described in the GPU Gems 3 article on parallel prefix 
+    //// scan that inspired this demo runs the prefix scan on the number of 0s, not the numbers of 
+    //// 1s as is normally done in a prefix scan.  But ParallelPrefixScan doesn't need to know 
+    //// that :).  It just needs 0s and 1s.  For application, see SortIntermediateData.comp.
+    //PrefixSumsWithinGroup[threadIndex] = 0;
+    //if (bitVal == 0)
+    //{
+    //    PrefixSumsWithinGroup[threadIndex] = 1;
+    //}
+    //else
+    //{
+    //    PrefixSumsWithinGroup[threadIndex] = 0;
+    //}
 
     // clear out the PrefixSumsPerGroup array
     // Note: This is more than just cleanup.  The ParallelPrefixScan on all the data will only 
-    // fill out the per-work-group sum for each work group in use, not for each work group that 
-    // is not in use.  If the sums of the work groups that are not in use are not cleared, then 
+    // fill out the per-work-group sum for each work group in use, NOT for each work group that 
+    // is NOT in use.  If the sums of the work groups that are not in use are not cleared, then 
     // the subsequent scan of all per-work-group sums will give an erroneous value to 
     // PrefixScanBuffer::totalNumberOfOnes.
     // Also Note: The only thread count guarantee in this shader is that it will be at least the
-    // size of 1 work group (the PrefixScanBuffer::PrefixSumsPerGroup array is twice this size), 
-    // so only let work group 0 do this setting to 0.
+    // size of 1 work group, so the only guaranteed-to-exist is work group 0.
     if (gl_WorkGroupID.x == 0)
     {
+        // the PrefixScanBuffer::PrefixSumsPerGroup array is twice the size of the work group
         PrefixSumsPerGroup[(gl_LocalInvocationID.x * 2)] = 0;
         PrefixSumsPerGroup[(gl_LocalInvocationID.x * 2) + 1] = 0;
     }

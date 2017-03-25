@@ -30,56 +30,91 @@ struct IntermediateData
     uint _globalIndexOfOriginalData;
 };
 
+
+
 // this should be the same size as the PrefixScanBuffer::PrefixSumsWithinGroup array
-layout(location = UNIFORM_LOCATION_INTERMEDIATE_BUFFER_SIZE) uniform uint uIntermediateBufferSize;
+// Note: Why use the half size instead of the full size?  Because the IntermediateDataBuffer is twice the size of the PrefixScanBuffer::PrefixSumsWithinGroup array but there is still the idea of a "read buffer" and "write buffer".  If reading from or writing to the "second" buffer, then any index calculation will need to have the size of the "first" buffer (that is, half the IntermediateDataBuffer size) added to it.
+//layout(location = UNIFORM_LOCATION_INTERMEDIATE_BUFFER_SIZE) uniform uint uIntermediateBufferSize;
+layout(location = UNIFORM_LOCATION_INTERMEDIATE_BUFFER_HALF_SIZE) uniform uint uIntermediateBufferHalfSize;
 
 
 // TODO: performance check
 // TODO: make a single array that is double the size of PrefixScanBuffer::PrefixSumsWithinGroup.
 // TODO: then do performance check again
 
+// use a bool (0 == false, otherwise true)
+//layout(location = UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER) uniform uint uReadFromFirstIntermediateBuffer;
+layout(location = UNIFORM_LOCATION_WRITE_TO_SECOND_INTERMEDIATE_BUFFER) uniform uint uWriteToSecondIntermediateBuffer;
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    Should be the same size as the number of data entries used in PrefixScanBuffer * 2.
-
-    The structures will need to be moved around in parallel after each prefix scan over the 
-    course of the parallel radix sorting (buffer 1 to buffer 2, then buffer 2 to buffer 1, then 
+    Should be 2x the size as PrefixScanBuffer::PrefixSumsWithinGroup.  The IntermediateData 
+    structures will need to be moved around in parallel after each prefix scan over the course 
+    of the parallel radix sorting (buffer 1 to buffer 2, then buffer 2 to buffer 1, then 
     buffer 1 to buffer 2, etc.).  
+    
+    Note: In an ealier stage of this demo there were two buffers, but doing that required 
+    conditional branching in GetBitforPrefixScan.comp and in SortIntermediateData.comp, which is 
+    expected to have a negative impact on performance.  
+    Solution: Use a single buffer that is the same size as the two separate buffers put 
+    together, then calculate whether an index should be in the "first" or "second" buffer as 
+    follows:
+
+    uint index = some calculation;
+    index += uWriteToSecondIntermediateBuffer * uIntermediateBufferHalfSize;
+
+    Also Note: It is called IntermediateSortBuffers (plural) despite being a single buffer 
+    because it contains enough space for two buffers (plural) and is read from and written to as 
+    if there were two buffers (plural).
 
 Creator:    John Cox, 3/17/2017
 ------------------------------------------------------------------------------------------------*/
-layout (std430, binding = INTERMEDIATE_SORT_FIRST_BUFFER_BINDING) buffer IntermediateSortFirstBuffer
+layout (std430, binding = INTERMEDIATE_SORT_BUFFERS_BINDING) buffer IntermediateSortBuffers
 {
-    IntermediateData AllIntermediateDataFirstBuffer[];
+    IntermediateData IntermediateDataBuffer[];
 };
 
-/*------------------------------------------------------------------------------------------------
-Description:
-    
-    Should be the same size as the number of data entries used in PrefixScanBuffer.  
-
-    I could have made a single buffer that was twice the size, and while it wouldn't have been 
-    much effort to calculate the offset into the "second" buffer, the bigger problem is that 
-    SortIntermediateDataUsingPrefixSums.comp would have required the calculated number of data 
-    entries that PrefixScanBuffer uses in order to calculate that offset, but calculating that 
-    requires some special handling to make sure data sets that aren't evenly divisible by the 
-    number of items that each work group can handle all get examined properly, and so the number 
-    of data entries that the user wants AND the number of data entries that PrefixScanBuffer 
-    uses would need to be calculated as #defines in compute headers, and I didn't want to deal 
-    with that.
-    
-    The rabbit hole goes deep.  I'll go the easier route and make 2 buffers.
-
-    I'll have to deal with some extra hassle of having A/B names for everything relating to the 
-    buffers, but that is easier than trying to get the number of data entry items that 
-    PrefixScanBuffer uses into a compute shader.
-Creator:    John Cox, 3/11/2017
-------------------------------------------------------------------------------------------------*/
-layout (std430, binding = INTERMEDIATE_SORT_SECOND_BUFFER_BINDING) buffer IntermediateSortSecondBuffer
-{
-    IntermediateData AllIntermediateDataSecondBuffer[];
-};
-
-// use a bool (0 == false, otherwise true)
-layout(location = UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER) uniform uint uReadFromFirstIntermediateBuffer;
+//
+//
+///*------------------------------------------------------------------------------------------------
+//Description:
+//    Should be the same size as the number of data entries used in PrefixScanBuffer * 2.
+//
+//    The structures will need to be moved around in parallel after each prefix scan over the 
+//    course of the parallel radix sorting (buffer 1 to buffer 2, then buffer 2 to buffer 1, then 
+//    buffer 1 to buffer 2, etc.).  
+//
+//Creator:    John Cox, 3/17/2017
+//------------------------------------------------------------------------------------------------*/
+//layout (std430, binding = INTERMEDIATE_SORT_FIRST_BUFFER_BINDING) buffer IntermediateSortFirstBuffer
+//{
+//    IntermediateData AllIntermediateDataFirstBuffer[];
+//};
+//
+///*------------------------------------------------------------------------------------------------
+//Description:
+//    
+//    Should be the same size as the number of data entries used in PrefixScanBuffer.  
+//
+//    I could have made a single buffer that was twice the size, and while it wouldn't have been 
+//    much effort to calculate the offset into the "second" buffer, the bigger problem is that 
+//    SortIntermediateDataUsingPrefixSums.comp would have required the calculated number of data 
+//    entries that PrefixScanBuffer uses in order to calculate that offset, but calculating that 
+//    requires some special handling to make sure data sets that aren't evenly divisible by the 
+//    number of items that each work group can handle all get examined properly, and so the number 
+//    of data entries that the user wants AND the number of data entries that PrefixScanBuffer 
+//    uses would need to be calculated as #defines in compute headers, and I didn't want to deal 
+//    with that.
+//    
+//    The rabbit hole goes deep.  I'll go the easier route and make 2 buffers.
+//
+//    I'll have to deal with some extra hassle of having A/B names for everything relating to the 
+//    buffers, but that is easier than trying to get the number of data entry items that 
+//    PrefixScanBuffer uses into a compute shader.
+//Creator:    John Cox, 3/11/2017
+//------------------------------------------------------------------------------------------------*/
+//layout (std430, binding = INTERMEDIATE_SORT_SECOND_BUFFER_BINDING) buffer IntermediateSortSecondBuffer
+//{
+//    IntermediateData AllIntermediateDataSecondBuffer[];
+//};
+//

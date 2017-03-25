@@ -4,7 +4,7 @@
 #include "ThirdParty/glload/include/glload/gl_4_4.h"
 
 #include "Include/SSBOs/PrefixSumSsbo.h"
-#include "Include/SSBOs/IntermediateData.h" // for debugging (TODO: remove this when done)
+#include "Include/SSBOs/IntermediateData.h" // for copying data back and verifying 
 
 #include "Shaders/ParallelSort/ParallelSortConstants.comp"
 #include "Shaders/ComputeHeaders/UniformLocations.comp"
@@ -37,8 +37,9 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort) :
     _parallelPrefixScanProgramId(0),
     _sortIntermediateDataProgramId(0),
     _originalDataCopySsbo(nullptr),
-    _intermediateDataFirstBuffer(nullptr),
-    _intermediateDataSecondBuffer(nullptr),
+    //_intermediateDataFirstBuffer(nullptr),
+    //_intermediateDataSecondBuffer(nullptr),
+    _intermediateDataSsbo(nullptr),
     _prefixSumSsbo(nullptr)
 {
     ShaderStorage &shaderStorageRef = ShaderStorage::GetInstance();
@@ -116,11 +117,15 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort) :
     // see explanation in the PrefixSumSsbo constructor for why there are likely more entries in 
     // PrefixScanBuffer::PrefixSumsWithinGroup than the requested number of items that need sorting
     unsigned int numEntriesInPrefixSumBuffer = _prefixSumSsbo->NumDataEntries();
-    _intermediateDataFirstBuffer = std::make_unique<IntermediateDataFirstBuffer>(numEntriesInPrefixSumBuffer);
-    _intermediateDataFirstBuffer->ConfigureUniforms(_originalDataToIntermediateDataProgramId);
-    _intermediateDataFirstBuffer->ConfigureUniforms(_getBitForPrefixScansProgramId);
-    _intermediateDataFirstBuffer->ConfigureUniforms(_sortIntermediateDataProgramId);
-    _intermediateDataSecondBuffer = std::make_unique<IntermediateDataSecondBuffer>(numEntriesInPrefixSumBuffer);
+    //_intermediateDataFirstBuffer = std::make_unique<IntermediateDataFirstBuffer>(numEntriesInPrefixSumBuffer);
+    //_intermediateDataFirstBuffer->ConfigureUniforms(_originalDataToIntermediateDataProgramId);
+    //_intermediateDataFirstBuffer->ConfigureUniforms(_getBitForPrefixScansProgramId);
+    //_intermediateDataFirstBuffer->ConfigureUniforms(_sortIntermediateDataProgramId);
+    //_intermediateDataSecondBuffer = std::make_unique<IntermediateDataSecondBuffer>(numEntriesInPrefixSumBuffer);
+    _intermediateDataSsbo = std::make_unique<IntermediateDataSsbo>(numEntriesInPrefixSumBuffer);
+    _intermediateDataSsbo->ConfigureUniforms(_originalDataToIntermediateDataProgramId);
+    _intermediateDataSsbo->ConfigureUniforms(_getBitForPrefixScansProgramId);
+    _intermediateDataSsbo->ConfigureUniforms(_sortIntermediateDataProgramId);
 
 }
 
@@ -185,7 +190,8 @@ void ParallelSort::Sort()
         // getting 1 bit value from intermediate data to prefix sum is 1 item per thread
         start = high_resolution_clock::now();
         glUseProgram(_getBitForPrefixScansProgramId);
-        glUniform1ui(UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER, readBufferNumber);
+        //glUniform1ui(UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER, readBufferNumber);
+        glUniform1ui(UNIFORM_LOCATION_WRITE_TO_SECOND_INTERMEDIATE_BUFFER, readBufferNumber);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
         glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -215,7 +221,8 @@ void ParallelSort::Sort()
         // and sort the intermediate data with the scanned values
         start = high_resolution_clock::now();
         glUseProgram(_sortIntermediateDataProgramId);
-        glUniform1ui(UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER, readBufferNumber);
+        //glUniform1ui(UNIFORM_LOCATION_READ_FROM_FIRST_INTERMEDIATE_BUFFER, readBufferNumber);
+        glUniform1ui(UNIFORM_LOCATION_WRITE_TO_SECOND_INTERMEDIATE_BUFFER, readBufferNumber);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
         glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -231,28 +238,30 @@ void ParallelSort::Sort()
     // copy the data back and check
     // Note: At the end of the last loop, the "write" buffer became the "read" buffer
     start = high_resolution_clock::now();
-    if (readFromFirstIntermediateBuffer)
-    {
-        // the sorted data wound up in the first buffer
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataFirstBuffer->BufferId());
-    }
-    else
-    {
-        // the sorted data wound up in the second buffer
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSecondBuffer->BufferId());
-    }
+    //if (readFromFirstIntermediateBuffer)
+    //{
+    //    // the sorted data wound up in the first buffer
+    //    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataFirstBuffer->BufferId());
+    //}
+    //else
+    //{
+    //    // the sorted data wound up in the second buffer
+    //    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSecondBuffer->BufferId());
+    //}
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
 
     std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanBuffer);
-    unsigned int bufferSizeBytes = checkIntermediateWriteBuffer.size() * sizeof(IntermediateData);
-    void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
-    memcpy(checkIntermediateWriteBuffer.data(), bufferPtr, bufferSizeBytes);
+    unsigned int halfBufferSizeBytes = checkIntermediateWriteBuffer.size() * sizeof(IntermediateData);
+    unsigned int startingIndex = ((unsigned int)(readFromFirstIntermediateBuffer)) * numItemsInPrefixScanBuffer;
+    void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, startingIndex, halfBufferSizeBytes, GL_MAP_READ_BIT);
+    memcpy(checkIntermediateWriteBuffer.data(), bufferPtr, halfBufferSizeBytes);
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
     // check
-    for (size_t i = 1; i < checkIntermediateWriteBuffer.size(); i++)
+    for (unsigned int i = startingIndex + 1; i < numItemsInPrefixScanBuffer; i++)
     {
-        unsigned int val = checkIntermediateWriteBuffer[i]._data;
-        unsigned int prevVal = checkIntermediateWriteBuffer[i - 1]._data;
+        unsigned int val = checkIntermediateWriteBuffer[startingIndex + i]._data;
+        unsigned int prevVal = checkIntermediateWriteBuffer[startingIndex + i - 1]._data;
 
         if (val == 0xffffffff)
         {

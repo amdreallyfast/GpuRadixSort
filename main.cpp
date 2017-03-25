@@ -193,14 +193,17 @@ void Display()
     static double elapsedTime = 0.0;
     static double frameRate = 0.0;
     elapsedFramesPerSecond++;
-    elapsedTime += gTimer.Lap();
-    if (elapsedTime > 1.0)
-    {
+    double frameTime = gTimer.Lap();
+    //elapsedTime += gTimer.Lap();
+    elapsedTime += frameTime;
+    if (elapsedTime > 1.0f)
+    { 
         frameRate = (double)elapsedFramesPerSecond / elapsedTime;
         elapsedFramesPerSecond = 0;
         elapsedTime -= 1.0f;
     }
     sprintf(str, "%.2lf", frameRate);
+    printf("frame time = %.2lf, elapsed time = %.2lf, elapsed frames = %d, frame rate = %.2lf\n", frameTime, elapsedTime, elapsedFramesPerSecond, frameRate);
 
     // Note: The font textures' orgin is their lower left corner, so the "lower left" in screen 
     // space is just above [-1.0f, -1.0f].

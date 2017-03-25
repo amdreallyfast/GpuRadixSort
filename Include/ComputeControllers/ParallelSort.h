@@ -32,7 +32,8 @@ private:
     unsigned int _sortIntermediateDataProgramId;
 
     OriginalDataCopySsbo::UNIQUE_PTR _originalDataCopySsbo;
-    IntermediateDataFirstBuffer::UNIQUE_PTR _intermediateDataFirstBuffer;
-    IntermediateDataSecondBuffer::UNIQUE_PTR _intermediateDataSecondBuffer;
+    //IntermediateDataFirstBuffer::UNIQUE_PTR _intermediateDataFirstBuffer;
+    //IntermediateDataSecondBuffer::UNIQUE_PTR _intermediateDataSecondBuffer;
+    IntermediateDataSsbo::UNIQUE_PTR _intermediateDataSsbo;
     PrefixSumSsbo::UNIQUE_PTR _prefixSumSsbo;
 };

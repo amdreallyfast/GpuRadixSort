@@ -17,14 +17,14 @@ Parameters:
 Returns:    None
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
-IntermediateDataFirstBuffer::IntermediateDataFirstBuffer(unsigned int numItems) :
+IntermediateDataSsbo::IntermediateDataSsbo(unsigned int numItems) :
     SsboBase(),  // generate buffers
     _numItems(numItems)
 {
-    std::vector<IntermediateData> v(numItems);
+    std::vector<IntermediateData> v(numItems * 2);
 
     // now bind this new buffer to the dedicated buffer binding location
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, INTERMEDIATE_SORT_FIRST_BUFFER_BINDING, _bufferId);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, INTERMEDIATE_SORT_BUFFERS_BINDING, _bufferId);
 
     // and fill it with new data
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, _bufferId);
@@ -46,11 +46,11 @@ Returns:
     See Description.
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
-void IntermediateDataFirstBuffer::ConfigureUniforms(unsigned int computeProgramId) const
+void IntermediateDataSsbo::ConfigureUniforms(unsigned int computeProgramId) const
 {
     // the uniform should remain constant after this 
     glUseProgram(computeProgramId);
-    glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_SIZE, _numItems);
+    glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_HALF_SIZE, _numItems);
     glUseProgram(0);
 }
 
@@ -62,7 +62,7 @@ Returns:
     See Description.
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
-unsigned int IntermediateDataFirstBuffer::NumItems() const
+unsigned int IntermediateDataSsbo::NumItems() const
 {
     return _numItems;
 }

@@ -23,12 +23,12 @@ Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 void main()
 {
-    // Note: The number of items in the IntermediateSortBuffers is equivalent to the number of 
-    // items in the PrefixScanBuffer, which will likely exceed the size of the user-provided 
-    // data.  The number of threads is managed by ParallelSort::Sort(...) to be the same as the 
-    // number of data entries that need to be filled out in the PrefixScanBuffer, so if the 
-    // thread ID is greater than the number of user-provided data entries, pad out the 
-    // IntermediateData with values of max int.  
+    // Note: The number of items in each half of IntermediateSortBuffers is equivalent to the 
+    // number of items in the PrefixScanBuffer::PrefixSumsWithinGroup, which will likely exceed 
+    // the size of the user-provided data.  The number of threads is managed by 
+    // ParallelSort::Sort() to be the same as the number of data entries that need to be filled 
+    // out, so if the thread ID is greater than the number of user-provided data entries, pad 
+    // out the IntermediateData with values of max uint. (TODO: UINT_MAX)
     // Also Note: Pad with max integer instead of 0s because the sorting will put items with the 
     // smallest value first, but entries that don't refer to any real data should be put at the 
     // back.  
@@ -43,14 +43,16 @@ void main()
     }
     else    // >= uOriginalDataBufferSize
     {
+        // TODO: try UINT_MAX
         newThing._data = 0xffffffff;
     }
 
     // this is the beginning of the sorting, so put the values into the first buffer, no 
     // questions asked
-    AllIntermediateDataFirstBuffer[threadIndex] = newThing;
+    //AllIntermediateDataFirstBuffer[threadIndex] = newThing;
+    IntermediateDataBuffer[threadIndex] = newThing;
 
 
-    // MAKE SURE now that the uniform uReadFromFirstIntermediateBuffer in 
-    // IntermediateSortBuffer is 1 
+    // MAKE SURE now that the uniform uWriteToSecondIntermediateBuffer in 
+    // IntermediateSortBuffers.comp is 1 
 }

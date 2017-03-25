@@ -16,14 +16,10 @@ Description:
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 
-#ifndef SSBO_BUFFER_BINDINGS_COMP
-#define SSBO_BUFFER_BINDINGS_COMP
-
-//??use 0??
 #define ORIGINAL_DATA_BUFFER_BINDING 0
 #define ORIGINAL_DATA_COPY_BUFFER_BINDING 1
 #define PREFIX_SCAN_BUFFER_BINDING 2
-#define INTERMEDIATE_SORT_FIRST_BUFFER_BINDING 3
-#define INTERMEDIATE_SORT_SECOND_BUFFER_BINDING 4
+//#define INTERMEDIATE_SORT_FIRST_BUFFER_BINDING 3
+//#define INTERMEDIATE_SORT_SECOND_BUFFER_BINDING 4
+#define INTERMEDIATE_SORT_BUFFERS_BINDING 3
 
-#endif

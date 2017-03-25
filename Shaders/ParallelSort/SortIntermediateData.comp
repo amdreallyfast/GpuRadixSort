@@ -52,69 +52,75 @@ void main()
     // Note: Thread count should be the size of the PrefixScanBuffer::PrefixSumsWithinGroup array.  The 
     // uniform uIntermediateBufferSize should be the same value, so either will work.
     
-    // implicitly "total number of zeros"
-    //uint offsetFor1s = uPrefixSumsWithinGroupSize - totalNumberOfOnes;
 
-    // looking for a bit value of 1 or 0, NOT the value at that bit
-    // Note: The terms "value at bit Z" and "value of bit X" may seem nit picky, but I'm trying
-    // to find a word that differentiates between the following:
-    // Ex: 0b1011
-    // What is the value at bit 3 and what is the value of bit 3?
-    // The value at bit 3 is 0b101011 & 0b001000 = 0b001000 = 8.
-    // The value of bit 3 is (0b101011 >> 3) & 0b000001 = 0b000101 & 0b000001 = 1;
-    // Two very different values.  Radix Sort sorts by the values of each bit position
-    uint bitVal = 0;
-    uint threadIndex = gl_GlobalInvocationID.x;
-    if (uReadFromFirstIntermediateBuffer == 0)
-    {
-        bitVal = (AllIntermediateDataSecondBuffer[threadIndex]._data >> uBitNumber) & 1;
-    }
-    else 
-    {
-        bitVal = (AllIntermediateDataFirstBuffer[threadIndex]._data >> uBitNumber) & 1;
-    }
+    //// this variable, as trivial as it is, was intoduced to try to alieve confusion
+    //// Note: See function Description for explanation.
+    //uint totalNumberOfZeros = totalNumberOfOnes;
 
-    // this variable, as trivial as it is, was intoduced to try to alieve confusion
-    // Note: See function Description for explanation.
-    uint totalNumberOfZeros = totalNumberOfOnes;
+    // there are only 0s and 1s, so if they weren't counted in the sum, then they are 0s
+    uint totalNumberOfZeros = uPrefixSumsWithinGroupSize - totalNumberOfOnes;
+
+    // same thread and bit value calculations as in GetBitForPrefixScan.comp
+    uint currentIndex = gl_GlobalInvocationID.x;
+    uint readFromSecondBuffer = uint(!bool(uWriteToSecondIntermediateBuffer));
+    currentIndex += (readFromSecondBuffer * uIntermediateBufferHalfSize);
 
     // remember that, during prefix scan, each thread works on 2 items, so the number of data 
     // entries that were scanned per work group is twice the size of a work group, but this 
-    // shader has only 1 thread per IntermediateData object, so half the work group ID to get 
-    // the right index
-    uint prefixSumOfZeros = PrefixSumsPerGroup[gl_WorkGroupID.x / 2] + PrefixSumsWithinGroup[threadIndex];
+    // shader has one entry per thread, so half the work group ID to get the right index
+    uint prefixSumOfZeros = PrefixSumsPerGroup[gl_WorkGroupID.x / 2] + PrefixSumsWithinGroup[currentIndex];
     
+    // do NOT subtract from currentIndex because the prefix sum was run over the 
+    // PrefixSumsWithinGroup array, but currentIndex is for IntermediateDataBuffer, which is 
+    // twice the size of that array
+    uint prefixSumOfOnes = gl_GlobalInvocationID.x - prefixSumOfZeros;
 
-    // TODO: go back to counting 1s and 0s and don't flip them in GetBitForPrefixScan.comp
-    //uint prefixSumOfOnes = threadIndex - prefixSumOfZeros;
+    //if (uReadFromFirstIntermediateBuffer == 0)
+    //{
+    //    bitVal = (AllIntermediateDataSecondBuffer[threadIndex]._data >> uBitNumber) & 1;
+    //}
+    //else 
+    //{
+    //    bitVal = (AllIntermediateDataFirstBuffer[threadIndex]._data >> uBitNumber) & 1;
+    //}
+    uint bitVal = (IntermediateDataBuffer[currentIndex]._data >> uBitNumber) & 1;
 
+    //// I don't have an intuitive explanation of why this works, but it does.  
+    ////??why does this work? from GPU Gems 3, section 39.3.3 Radix Sort??
+    //// Note: If the value being sorted has a 1 at the current bit, then the order of 1s in the 
+    //// data set is maintained by the thread ID.  If the value being sorted does not have a 1, 
+    //// then the order of 0s in the data set is maintained by the number of 0s that came before 
+    //// it.
+    //uint destinationIndex = 0;
+    //if (bitVal == 1)
+    //{
+    //    destinationIndex = totalNumberOfZeros + (threadIndex - prefixSumOfZeros);
+    //}
+    //else
+    //{
+    //    destinationIndex = prefixSumOfZeros;
+    //}
 
-    // I don't have an intuitive explanation of why this works, but it does.  
-    //??why does this work? from GPU Gems 3, section 39.3.3 Radix Sort??
-    // Note: If the value being sorted has a 1 at the current bit, then the order of 1s in the 
-    // data set is maintained by the thread ID.  If the value being sorted does not have a 1, 
-    // then the order of 0s in the data set is maintained by the number of 0s that came before 
-    // it.
-    uint destinationIndex = 0;
-    if (bitVal == 1)
-    {
-        destinationIndex = totalNumberOfZeros + (threadIndex - prefixSumOfZeros);
-    }
-    else
-    {
-        destinationIndex = prefixSumOfZeros;
-    }
+    // Note: If the value being sorted has a 0 at the current bit, then the order of 0s in the 
+    // data set is maintained (as per Radix Sort) by the number of 0s that came before the 
+    // current value.  If the value being sorted has a 1 at the current bit, then the order is 
+    // maintained by the number of 1s that came before it.
+    uint destinationIndex = (bitVal == 0) ? prefixSumOfZeros : totalNumberOfZeros + prefixSumOfOnes;
+    destinationIndex += (uWriteToSecondIntermediateBuffer * uIntermediateBufferHalfSize);
 
-    // do the write
-    if (uReadFromFirstIntermediateBuffer == 0)
-    {
-        // read from second buffer, write to first
-        AllIntermediateDataFirstBuffer[destinationIndex] = AllIntermediateDataSecondBuffer[threadIndex];
-    }
-    else
-    {
-        // read from first buffer, write to second
-        AllIntermediateDataSecondBuffer[destinationIndex] = AllIntermediateDataFirstBuffer[threadIndex];
-    }
+    //// do the write
+    //if (uReadFromFirstIntermediateBuffer == 0)
+    //{
+    //    // read from second buffer, write to first
+    //    AllIntermediateDataFirstBuffer[destinationIndex] = AllIntermediateDataSecondBuffer[threadIndex];
+    //}
+    //else
+    //{
+    //    // read from first buffer, write to second
+    //    AllIntermediateDataSecondBuffer[destinationIndex] = AllIntermediateDataFirstBuffer[threadIndex];
+    //}
+
+    // do the sort
+    IntermediateDataBuffer[destinationIndex] = IntermediateDataBuffer[currentIndex];
 
 }
