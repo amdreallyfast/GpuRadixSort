@@ -18,7 +18,7 @@ public:
 
 
     // derived class needs customized Init(...) function to initialize member values
-    virtual void ConfigureUniforms(unsigned int computeProgramId) const;
+    virtual void ConfigureConstantUniforms(unsigned int computeProgramId) const;
     virtual void ConfigureRender(unsigned int renderProgramId, unsigned int drawStyle) const;
 
     unsigned int VaoId() const;

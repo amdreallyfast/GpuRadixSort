@@ -166,7 +166,7 @@ Returns:
     See Description.
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/  
-void PrefixSumSsbo::ConfigureUniforms(unsigned int computeProgramId) const
+void PrefixSumSsbo::ConfigureConstantUniforms(unsigned int computeProgramId) const
 {
     // the uniform should remain constant after this 
     glUseProgram(computeProgramId);

@@ -49,8 +49,4 @@ void main()
     // this is the beginning of the sorting, so put the values into the first buffer, no 
     // questions asked
     IntermediateDataBuffer[threadIndex] = newThing;
-
-
-    // MAKE SURE now that the uniform uWriteToSecondIntermediateBuffer in 
-    // IntermediateSortBuffers.comp is 1 
 }

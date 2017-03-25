@@ -60,21 +60,18 @@ SsboBase::~SsboBase()
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    The uniform binding locations may be #define'd in a compute "header", but as far as OpenGL 
-    is concerned, uniform binding locations are specific to the shader, so SSBOs that, for 
-    example, want to define a uniform for buffer size need to do it for each shader that uses 
-    it.  This is a common issue in the parallel sort algorithm, in which buffers are used in at 
-    least 2 shaders, so the uniform for buffer size needs to be defined for each of them.
+    This is a convenience method for setting constant values, like buffer sizes, that must be 
+    set for the same SSBO in multiple shaders.  This is not unusual in the parallel sort 
+    algorithm, which has multiple sets, and in each step data may be taken from one buffer, have 
+    calculations performed on it, and then stuck into another buffer.
 
-    The method does nothing though.  There may be a shader that does not have a uniform or that
-    doesn't need to define them for whatever reason.  In that case, let the derived class use 
-    this base method.
+    The method does nothing though.  Override as needed.
 Parameters: 
     Ignored
 Returns:    None
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
-void SsboBase::ConfigureUniforms(unsigned int) const
+void SsboBase::ConfigureConstantUniforms(unsigned int) const
 {
     // nothing
 }

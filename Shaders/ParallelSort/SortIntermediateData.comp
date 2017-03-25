@@ -39,8 +39,7 @@ void main()
 {
     // Note: Thread count should be the size of the PrefixScanBuffer::PrefixSumsWithinGroup 
     // array.  
-    
-    uint prefixSumReadIndex = gl_GlobalInvocationID.x;
+    uint threadIndex = gl_GlobalInvocationID.x;
 
     // remember that, during prefix scan, each thread works on 2 items, so the number of data 
     // entries that were scanned per work group is twice the size of a work group, but this 
@@ -48,42 +47,27 @@ void main()
     // prefix sum
     uint prefixSumOfOnes = 
         PrefixSumsByGroup[gl_WorkGroupID.x / 2] + 
-        PrefixSumsWithinGroup[prefixSumReadIndex];
+        PrefixSumsWithinGroup[threadIndex];
 
     // there are only 0s and 1s, so if they weren't counted in the sum, then they are 0s
     // Note: I could have used uIntermediateBufferHalfSize instead of uPrefixSumsWithinGroupSize 
     // because they must be identical for the index calculations to line up when determining 
     // which prefix sum is meant for which IntermediateData structure, but I did it this way to 
     // try to keep the terminology straight.
-    uint prefixSumOfZeros = prefixSumReadIndex - prefixSumOfOnes;
+    uint prefixSumOfZeros = threadIndex - prefixSumOfOnes;
     uint totalNumberOfZeros = uPrefixSumsWithinGroupSize - totalNumberOfOnes;
 
-    // now figure out where the IntermediataData structure is that needs to be sorted
-    // Note: Use the same bit value calculation as in GetBitForPrefixScan.comp.
-    uint intermediataDataReadIndex = prefixSumReadIndex;
-    uint readFromSecondBuffer = uint(!bool(uWriteToSecondIntermediateBuffer));
-    intermediataDataReadIndex += (readFromSecondBuffer * uIntermediateBufferHalfSize);
-
     // this values determines if the value should go with the 0s or with 1s on this sort step
-    uint bitVal = (IntermediateDataBuffer[intermediataDataReadIndex]._data >> uBitNumber) & 1;
+    uint intermediateDataReadIndex = threadIndex + uIntermediateBufferReadOffset;
+    uint bitVal = (IntermediateDataBuffer[intermediateDataReadIndex]._data >> uBitNumber) & 1;
 
     // Note: If the value being sorted has a 0 at the current bit, then the order of 0s in the 
     // data set is maintained (as per Radix Sort) by the number of 0s that came before the 
     // current value.  If the value being sorted has a 1 at the current bit, then the order is 
     // maintained by the number of 1s that came before it.
-    //uint destinationIndex = (bitVal == 0) ? prefixSumOfZeros : (totalNumberOfZeros + prefixSumOfOnes);
-    uint destinationIndex = 0;
-    if (bitVal == 0)
-    {
-        destinationIndex = prefixSumOfZeros;
-    }
-    else
-    {
-        destinationIndex = totalNumberOfZeros + prefixSumOfOnes;
-    }
-    destinationIndex += (uWriteToSecondIntermediateBuffer * uIntermediateBufferHalfSize);
+    uint destinationIndex = (bitVal == 0) ? prefixSumOfZeros : (totalNumberOfZeros + prefixSumOfOnes);
+    destinationIndex += uIntermediateBufferWriteOffset;
 
     // do the sort
-    IntermediateDataBuffer[destinationIndex] = IntermediateDataBuffer[intermediataDataReadIndex];
-    //IntermediateDataBuffer[(uWriteToSecondIntermediateBuffer * uIntermediateBufferHalfSize) + gl_GlobalInvocationID.x]._data = prefixSumOfOnes;
+    IntermediateDataBuffer[destinationIndex] = IntermediateDataBuffer[intermediateDataReadIndex];
 }

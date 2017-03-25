@@ -46,7 +46,7 @@ Returns:
     See Description.
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
-void IntermediateDataSsbo::ConfigureUniforms(unsigned int computeProgramId) const
+void IntermediateDataSsbo::ConfigureConstantUniforms(unsigned int computeProgramId) const
 {
     // the uniform should remain constant after this 
     glUseProgram(computeProgramId);

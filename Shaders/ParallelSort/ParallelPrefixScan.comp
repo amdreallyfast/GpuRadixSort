@@ -220,7 +220,6 @@ void PrefixSumOnPrefixSumsByGroup()
             uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
             PrefixSumsByGroup[greaterIndex] += PrefixSumsByGroup[lesserIndex];
-            //PrefixSumsByGroup[greaterIndex] = lesserIndex;
         }
         indexMultiplierDueToDepth *= 2;
     }

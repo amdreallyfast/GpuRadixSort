@@ -39,8 +39,9 @@ struct IntermediateData
 // half the IntermediateDataBuffer size) added to it.
 layout(location = UNIFORM_LOCATION_INTERMEDIATE_BUFFER_HALF_SIZE) uniform uint uIntermediateBufferHalfSize;
 
-// use a bool (0 == false, otherwise true)
-layout(location = UNIFORM_LOCATION_WRITE_TO_SECOND_INTERMEDIATE_BUFFER) uniform uint uWriteToSecondIntermediateBuffer;
+// should be self-explanatory
+layout(location = UNIFORM_LOCATION_INTERMEDIATE_BUFFER_READ_OFFSET) uniform uint uIntermediateBufferReadOffset;
+layout(location = UNIFORM_LOCATION_INTERMEDIATE_BUFFER_WRITE_OFFSET) uniform uint uIntermediateBufferWriteOffset;
 
 /*------------------------------------------------------------------------------------------------
 Description:
@@ -51,17 +52,11 @@ Description:
     
     Note: In an ealier stage of this demo there were two buffers, but doing that required 
     conditional branching in GetBitforPrefixScan.comp and in SortIntermediateData.comp, which is 
-    expected to have a negative impact on performance.  
-    Solution: Use a single buffer that is the same size as the two separate buffers put 
-    together, then calculate whether an index should be in the "first" or "second" buffer as 
-    follows:
-
-    uint readIndex = some calculation;
-    uint readFromSecondBuffer = uint(!bool(uWriteToSecondIntermediateBuffer));
-    readIndex += readFromSecondBuffer * uIntermediateBufferHalfSize;
-
-    uint writeIndex = some calculation;
-    writeIndex += uWriteToSecondIntermediateBuffer * uIntermediateBufferHalfSize;
+    expected to have a negative impact on performance.  In switching to a single buffer and using
+    the "read offset" and "write offset" uniforms, there was an approximate doubling of 
+    computation time, but it was a matter of ~50microseconds vs ~100microsecond for a data size 
+    of 1,000,000+, which is a very small deal for me, and the single buffer is easier to 
+    maintain, so I'll keep the 1-buffer system.
 
     Also Note: It is called IntermediateSortBuffers (plural) despite being a single buffer 
     because it contains enough space for two buffers (plural) and is read from and written to as 

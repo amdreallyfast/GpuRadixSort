@@ -16,7 +16,7 @@ public:
     PrefixSumSsbo(unsigned int numDataEntries);
     typedef std::unique_ptr<PrefixSumSsbo> UNIQUE_PTR;
 
-    void ConfigureUniforms(unsigned int computeProgramId) const override;
+    void ConfigureConstantUniforms(unsigned int computeProgramId) const override;
     unsigned int NumPerGroupPrefixSums() const;
     unsigned int NumDataEntries() const;
 
