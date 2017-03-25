@@ -40,9 +40,9 @@ double Stopwatch::Lap()
 {
     using namespace std::chrono;
 
-    // there is no penalty to using high_resolution_clock instead of steady_clock because the 
-    // latter is just a typedef of the former, and the former always reads the CPU's clock 
-    // counter and then converts that into whatever time span the user wants 
+    // there is no performance penalty to using high_resolution_clock over something else (like 
+    // steady_clock) it always reads the CPU's clock counter and then converts that into 
+    // whatever time span the user wants 
     steady_clock::time_point currentTime = high_resolution_clock::now();
     unsigned int deltaTime = duration_cast<microseconds>(currentTime - _lastLapTime).count();
     _lastLapTime = currentTime;
