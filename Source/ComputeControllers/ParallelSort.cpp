@@ -90,13 +90,6 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort) :
     _parallelPrefixScanProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
 
     // and sort the "read" arry from IntermediateSortBuffers into the "write" array
-    // REQUIRES Version.comp
-    // REQUIRES ParallelSortConstants.comp
-    // - PARALLEL_SORT_WORK_GROUP_SIZE_X
-    // REQUIRES UniformLocations.comp
-    // REQUIRES SsboBufferBindings.comp
-    // REQUIRES IntermediateSortBuffers.comp
-    // REQUIRES PrefixScanBuffer.comp
     shaderKey = "sort intermediate data";
     shaderStorageRef.NewCompositeShader(shaderKey);
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/Version.comp");
@@ -110,7 +103,7 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort) :
     shaderStorageRef.LinkShader(shaderKey);
     _sortIntermediateDataProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
 
-
+    // TODO: SortOriginalData
 
     unsigned int originalDataSize = dataToSort->NumItems();
     _originalDataCopySsbo = std::make_unique<OriginalDataCopySsbo>(originalDataSize);
@@ -130,94 +123,54 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort) :
 
 }
 
-#include <math.h>
-static void printRepeating(std::vector<IntermediateData> &arr)
-{
-    int i;
-    printf("The repeating elements are: \n");
-    for (i = 0; i < arr.size(); i++)
-    {
-        if (arr[i]._data == -1)
-        {
-            continue;
-        }
 
-        int temp = arr[i]._data;
-        temp = abs(temp);
-        temp = arr[temp]._data;
-
-        int index = arr[i]._data;
-        index = abs(index);
-        int val = arr[index]._data;
-        if (val >= 0)
-            arr[index]._data = -arr[index]._data;
-        else
-            printf(" - %d at index %d\n", abs(val), index);
-    }
-}
-
-static void FindIndex(std::vector<IntermediateData> &arr, unsigned int value)
-{
-    for (size_t i = 0; i < arr.size(); i++)
-    {
-        if (arr[i]._data == value)
-        {
-            printf("found value %u at index %u\n", value, i);
-        }
-    }
-}
-
-static void FindIndex(std::vector<unsigned int> &arr, unsigned int value)
-{
-    for (size_t i = 0; i < arr.size(); i++)
-    {
-        if (arr[i] == value)
-        {
-            printf("found value %u at index %u\n", value, i);
-        }
-    }
-}
-
-
-
-
-// TODO: header
+/*------------------------------------------------------------------------------------------------
+Description:
+    This function is the main show of this demo.  It summons shaders to do the following:
+    - Copy original data to intermediate data structures 
+    - Get bits one at a time from the values in the intermediate data structures
+    - Run the parallel prefix scan algorithm on those bit values
+    - Sort the intermediate data structures using the resulting prefix sums
+Parameters: None
+Returns:    None
+Creator:    John Cox
+------------------------------------------------------------------------------------------------*/
 void ParallelSort::Sort()
 {
     // TODO: (if actually sorting original data) need an SsboBase pointer and need to copy the original data buffer to the original data copy buffer
 
-    // sorting runs over an array (one dimension), so only need to calculate X work group size
-    // Note: +1 to total so that a data set less than a single work group size still gets a work 
-    // group. 
-    // Also Note: +1 to work group size so that a data set size that is an exact multiple of the 
-    // work group size doesn't get an extra work group.
+    // Note: See the explanation at the top of PrefixSumsSsbo.cpp for calculation explanation.
     unsigned int numItemsInPrefixScanBuffer = _prefixSumSsbo->NumDataEntries();
-    //int numWorkGroupsXByWorkGroupSize = (numItemsInPrefixScanBuffer / (PARALLEL_SORT_WORK_GROUP_SIZE_X + 1)) + 1;
-    //int numWorkGroupsXByItemsPerWorkGroup = (numItemsInPrefixScanBuffer / (ITEMS_PER_WORK_GROUP + 1)) + 1;
 
-    int numWorkGroupsXByItemsPerWorkGroup = 0;
-    if (numItemsInPrefixScanBuffer % ITEMS_PER_WORK_GROUP == 0)
-    {
-        // data size evenly divides 
-        numWorkGroupsXByItemsPerWorkGroup = numItemsInPrefixScanBuffer / ITEMS_PER_WORK_GROUP;
-    }
-    else
-    {
-        // data size does not evenly divide, so give remainder data their own work group
-        numWorkGroupsXByItemsPerWorkGroup = (numItemsInPrefixScanBuffer / ITEMS_PER_WORK_GROUP) + 1;
-    }
+    //int numWorkGroupsXByItemsPerWorkGroup = 0;
+    //if (numItemsInPrefixScanBuffer % ITEMS_PER_WORK_GROUP == 0)
+    //{
+    //    // data size evenly divides 
+    //    numWorkGroupsXByItemsPerWorkGroup = numItemsInPrefixScanBuffer / ITEMS_PER_WORK_GROUP;
+    //}
+    //else
+    //{
+    //    // data size does not evenly divide, so give remainder data their own work group
+    //    numWorkGroupsXByItemsPerWorkGroup = (numItemsInPrefixScanBuffer / ITEMS_PER_WORK_GROUP) + 1;
+    //}
+    int numWorkGroupsXByItemsPerWorkGroup = numItemsInPrefixScanBuffer / ITEMS_PER_WORK_GROUP;
+    int remainder = numItemsInPrefixScanBuffer % ITEMS_PER_WORK_GROUP;
+    numWorkGroupsXByItemsPerWorkGroup += (remainder == 0) ? 0 : 1;
 
-    int numWorkGroupsXByWorkGroupSize = 0;
-    if (numItemsInPrefixScanBuffer % PARALLEL_SORT_WORK_GROUP_SIZE_X == 0)
-    {
-        // data size evenly divides 
-        numWorkGroupsXByWorkGroupSize = numItemsInPrefixScanBuffer / PARALLEL_SORT_WORK_GROUP_SIZE_X;
-    }
-    else
-    {
-        // data size does not evenly divide, so give remainder data their own work group
-        numWorkGroupsXByWorkGroupSize = (numItemsInPrefixScanBuffer / PARALLEL_SORT_WORK_GROUP_SIZE_X) + 1;
-    }
+    //int numWorkGroupsXByWorkGroupSize = 0;
+    //if (numItemsInPrefixScanBuffer % PARALLEL_SORT_WORK_GROUP_SIZE_X == 0)
+    //{
+    //    // data size evenly divides 
+    //    numWorkGroupsXByWorkGroupSize = numItemsInPrefixScanBuffer / PARALLEL_SORT_WORK_GROUP_SIZE_X;
+    //}
+    //else
+    //{
+    //    // data size does not evenly divide, so give remainder data their own work group
+    //    numWorkGroupsXByWorkGroupSize = (numItemsInPrefixScanBuffer / PARALLEL_SORT_WORK_GROUP_SIZE_X) + 1;
+    //}
+    int numWorkGroupsXByWorkGroupSize = numItemsInPrefixScanBuffer / PARALLEL_SORT_WORK_GROUP_SIZE_X;
+    remainder = numItemsInPrefixScanBuffer % PARALLEL_SORT_WORK_GROUP_SIZE_X;
+    numWorkGroupsXByWorkGroupSize += (remainder == 0) ? 0 : 1;
 
     int numWorkGroupsY = 1;
     int numWorkGroupsZ = 1;
@@ -378,7 +331,7 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
     //memcpy(checkIntermediateReadBuffer.data(), bufferPtr, bufferSizeBytes);
     //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-    printRepeating(checkIntermediateReadBuffer);
+    //printRepeating(checkIntermediateReadBuffer);
 
     //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSecondBuffer->BufferId());
     //bufferSizeBytes = checkIntermediateWriteBuffer.size() * sizeof(IntermediateData);
@@ -514,8 +467,7 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
 
     // copy the data back and check
 
-    // undo the last buffer switch at the end of the last loop
-    //readFromFirstIntermediateBuffer = !readFromFirstIntermediateBuffer;
+    // at the end of the last loop, the "write" buffer became the "read" buffer
     if (readFromFirstIntermediateBuffer)
     {
         // the sorted data wound up in the first buffer
@@ -524,7 +476,6 @@ std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanB
     else
     {
         // the sorted data wound up in the second buffer
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataFirstBuffer->BufferId());
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSecondBuffer->BufferId());
     }
 

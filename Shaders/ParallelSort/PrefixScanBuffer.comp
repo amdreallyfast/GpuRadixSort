@@ -16,9 +16,18 @@ Description:
 
     Note: The totalNumberOfOnes value between the buffers is set during in the middle of the 
     prefix scan algorithm of the PrefixSumsPerGroup array in the same manner that entries in 
-    PrefixSumsPerGroup are set in the middle of each work group's prefix scan of PrefixSumsWithinGroup.  
-    It is used along with uPrefixSumsWithinGroupSize in SortIntermediateData.comp to determine the total 
-    number of 0s and thus the offset for where the 1s should be put.
+    PrefixSumsPerGroup are set in the middle of each work group's prefix scan of 
+    PrefixSumsWithinGroup.  It is used along with uPrefixSumsWithinGroupSize in 
+    SortIntermediateData.comp to determine the total number of 0s and thus the offset the 1s.
+
+    Prefix sum of 0s = index into PrefixSumsWithinGroup - value at that index (sum of 1s)
+
+    Why is there a "number of 1s" variable being used to determine the number of 0s?  Because 
+    (1) The 1s go after the 0s, so the index for the 1s requires knowing how many 0s came before
+    (2) You can sum all the 0s in the world and you will still get 0.  Sure, it is possible 
+    to count the number of 0s, but then you'll have to use a counting algorithm, not a sum 
+    algorithm.
+
 Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
 layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer PrefixScanBuffer

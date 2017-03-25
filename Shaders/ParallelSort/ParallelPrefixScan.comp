@@ -9,10 +9,19 @@ Description:
     for the algorithm (despite the code golfing variable names and lack of comments, at least 
     they had pictures that I could eventually work out).
     http://http.developer.nvidia.com/GPUGems3/gpugems3_ch39.html
-
-    TODO: figure out how the "eliminate bank conflicts" thing works (I had an epiphany when going through the binary tree algorithm by hand, and I think that I can figure it out, but I need more paper)
 Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
+
+
+
+// TODO: 
+// use a temporary shared memory array instead of writing to global memory on each loop
+// - figure out how the "eliminate bank conflicts" thing works (I had an epiphany when going through the binary tree algorithm by hand, and I think that I can figure it out, but I need more paper)
+// 
+
+
+
+
 
 // REQUIRES Version.comp
 // REQUIRES ParallelSortConstants.comp
@@ -49,35 +58,16 @@ void CalculatePrefixSumsWithinGroup()
     uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
 
     uint indexMultiplierDueToDepth = 1;
-    uint loopCounter = 0;
-    uint lesserIndex = 0;
-    uint greaterIndex = 0;
     for (int dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
     {
         barrier();
 
         if (gl_LocalInvocationID.x < dataPairs)
         {
-            //uint lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-            //uint greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
-            lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-            greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            uint lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            uint greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
-            if (gl_WorkGroupID.x == 256)
-            {
-                PrefixSumsWithinGroup[greaterIndex] += PrefixSumsWithinGroup[lesserIndex];
-                //if (PrefixSumsWithinGroup[greaterIndex] < 512)
-                {
-                    PrefixSumsPerGroup[256] = PrefixSumsWithinGroup[greaterIndex];
-                    //PrefixSumsPerGroup[257] = dataPairs;
-                }
-            }
-            else
-            {
-                PrefixSumsWithinGroup[greaterIndex] += PrefixSumsWithinGroup[lesserIndex];
-            }
-            
-
+            PrefixSumsWithinGroup[greaterIndex] += PrefixSumsWithinGroup[lesserIndex];
         }
         indexMultiplierDueToDepth *= 2;
     }
@@ -85,11 +75,7 @@ void CalculatePrefixSumsWithinGroup()
     // only one thread should do these (prevents unnecessary writes)
     if (doubleGroupThreadIndex == 0)
     {
-        if (gl_WorkGroupID.x != 256)
-        {
-            PrefixSumsPerGroup[gl_WorkGroupID.x] = PrefixSumsWithinGroup[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1];
-        }
-        
+        PrefixSumsPerGroup[gl_WorkGroupID.x] = PrefixSumsWithinGroup[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1];
         PrefixSumsWithinGroup[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1] = 0;
     }
     indexMultiplierDueToDepth >>= 1;
@@ -224,7 +210,6 @@ void PrefixSumOnPrefixSumsPerGroup()
     uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
 
     uint indexMultiplierDueToDepth = 1;
-    uint loopCounter = 0;
     for (int dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
     {
         barrier();
@@ -279,14 +264,10 @@ Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
 void main()
 {
-    // this algorithm is closely tied to the size of a work group, and when setting up for it care is taken to make sure that all threads within a work group have something to do, so as long as care keeps being taken to make sure that all threads are busy, then there is no need for a "max thread count" check or something like that
-
-
-//    if (gl_GlobalInvocationID.x >= uMaxThreadCount)
-//    {
-//        // nothing for this thread to do
-//        return;
-//    }
+    // this algorithm is closely tied to the size of a work group, and when setting up for it 
+    // care is taken to make sure that all threads within a work group have something to do, so 
+    // as long as care keeps being taken to make sure that all threads are busy, then there is 
+    // no need for a "max thread count" check or something like that
 
     if (uCalculateAll == 1)
     {

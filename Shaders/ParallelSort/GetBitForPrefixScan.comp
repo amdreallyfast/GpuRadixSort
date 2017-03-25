@@ -43,6 +43,7 @@ void main()
     }
 
 
+    // TODO: don't flip the bits; you can use the global thread ID to calculate the prefix sum of 0s from the prefix sum of 1s in SortIntermediateData.comp
 
 
 

@@ -21,9 +21,6 @@ public:
     unsigned int NumDataEntries() const;
 
 private:
-    // NOT the same as the number of items in the buffer
-    // Note: The buffer has PrefixSumsPerGroup and PrefixSumsWithinGroup.  This item gives the latter's 
-    // array size.
     unsigned int _numPerGroupPrefixSums;
     unsigned int _numDataEntries;
 };

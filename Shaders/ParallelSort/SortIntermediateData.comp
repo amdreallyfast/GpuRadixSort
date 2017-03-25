@@ -12,6 +12,12 @@ layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
 // also used in GetBitForPrefixScans.comp (different uniform of course because different shader)
 layout(location = UNIFORM_LOCATION_BIT_NUMBER) uniform uint uBitNumber;
 
+
+
+// TODO: use a single IntermediateDataBuffer that is twice the size of PrefixScanBuffer::
+
+
+
 /*------------------------------------------------------------------------------------------------
 Description:
     Uses the radix sorting algorithm to sort the IntermediateData structures in the "read" 
@@ -25,6 +31,11 @@ Description:
     first 0 will be on the far left, the send 0 after that, the third 0 after that, and the 
     fourth 0 after that.  Then the first 1, then the second 1, then the third. 
     
+
+    // TODO: remove this explanation once you are using the number of 1s
+
+
+
     The order is maintained by a simple calculation that uses the thread number and a prefix 
     scan of the number of 0s in the data set, not on the number of 1s.  This sorting approach 
     comes from the GPU Gems 3 article on parallel prefix scan.  GetBitForPrefixScan.comp makes 
@@ -44,19 +55,16 @@ void main()
     // implicitly "total number of zeros"
     //uint offsetFor1s = uPrefixSumsWithinGroupSize - totalNumberOfOnes;
 
-    // use this bit as a multiplicative flag to determine whether the IntermediateData should go 
-    // in the 0s or the 1s
-    uint bitMask = 1 << uBitNumber;
-
+    // looking for a bit value of 1 or 0, NOT the value at that bit
+    // Note: The terms "value at bit Z" and "value of bit X" may seem nit picky, but I'm trying
+    // to find a word that differentiates between the following:
+    // Ex: 0b1011
+    // What is the value at bit 3 and what is the value of bit 3?
+    // The value at bit 3 is 0b101011 & 0b001000 = 0b001000 = 8.
+    // The value of bit 3 is (0b101011 >> 3) & 0b000001 = 0b000101 & 0b000001 = 1;
+    // Two very different values.  Radix Sort sorts by the values of each bit position
     uint bitVal = 0;
     uint threadIndex = gl_GlobalInvocationID.x;
-
-//    if (threadIndex >= 16)
-//    {
-//        return;
-//    }
-
-
     if (uReadFromFirstIntermediateBuffer == 0)
     {
         bitVal = (AllIntermediateDataSecondBuffer[threadIndex]._data >> uBitNumber) & 1;
@@ -75,7 +83,6 @@ void main()
     // shader has only 1 thread per IntermediateData object, so half the work group ID to get 
     // the right index
     uint prefixSumOfZeros = PrefixSumsPerGroup[gl_WorkGroupID.x / 2] + PrefixSumsWithinGroup[threadIndex];
-    //uint prefixSumOfZeros = PrefixSumsPerGroup[0] + PrefixSumsWithinGroup[threadIndex];
     
 
     // TODO: go back to counting 1s and 0s and don't flip them in GetBitForPrefixScan.comp
@@ -103,21 +110,11 @@ void main()
     {
         // read from second buffer, write to first
         AllIntermediateDataFirstBuffer[destinationIndex] = AllIntermediateDataSecondBuffer[threadIndex];
-        
-        // debugging
-        //AllIntermediateDataFirstBuffer[destinationIndex]._globalIndexOfOriginalData = threadIndex;
-        //AllIntermediateDataSecondBuffer[threadIndex]._data = prefixSumOfZeros;
-        //AllIntermediateDataSecondBuffer[threadIndex]._globalIndexOfOriginalData = destinationIndex;
     }
     else
     {
         // read from first buffer, write to second
         AllIntermediateDataSecondBuffer[destinationIndex] = AllIntermediateDataFirstBuffer[threadIndex];
-
-        // debugging
-        //AllIntermediateDataSecondBuffer[destinationIndex]._globalIndexOfOriginalData = threadIndex;
-        //AllIntermediateDataFirstBuffer[threadIndex]._data = prefixSumOfZeros;
-//        AllIntermediateDataFirstBuffer[threadIndex]._globalIndexOfOriginalData = destinationIndex;
     }
 
 }

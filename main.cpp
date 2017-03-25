@@ -58,31 +58,7 @@ FreeTypeEncapsulated gTextAtlases;
 OriginalDataSsbo::UNIQUE_PTR originalData = nullptr;
 std::unique_ptr<ParallelSort> parallelSort = nullptr;
 
-//const unsigned int MAX_DATA_COUNT = 262144;
-//const unsigned int MAX_DATA_COUNT = 262145;
 const unsigned int MAX_DATA_COUNT = 1000000;
-
-
-#include <math.h>
-static void printRepeating(std::vector<OriginalData> &arr)
-{
-    int i;
-    printf("The repeating elements are: \n");
-    for (i = 0; i < arr.size(); i++)
-    {
-        int temp = arr[i]._value;
-        temp = abs(temp);
-        temp = arr[temp]._value;
-
-        int index = arr[i]._value;
-        index = abs(index);
-        int val = arr[index]._value;
-        if (val >= 0)
-            arr[index]._value = -arr[index]._value;
-        else
-            printf("- %d at index %d\n", abs(val), index);
-    }
-}
 
 /*------------------------------------------------------------------------------------------------
 Description:
@@ -141,36 +117,13 @@ void Init()
 
     // generate dummy data for this demo
     std::vector<OriginalData> demoData(originalData->NumItems());
-    //demoData[0]._value = 12;
-    //demoData[1]._value = 1;
-    //demoData[2]._value = 9;
-    //demoData[3]._value = 2;
-    //demoData[4]._value = 0;
-    //demoData[5]._value = 11;
-    //demoData[6]._value = 7;
-    //demoData[7]._value = 3;
-    //demoData[8]._value = 4;
-    //demoData[9]._value = 15;
-    //demoData[10]._value = 8;
-    //demoData[11]._value = 5;
-    //demoData[12]._value = 14;
-    //demoData[13]._value = 13;
-    //demoData[14]._value = 10;
-    //demoData[15]._value = 6;
-
-
     for (size_t dataIndex = 0; dataIndex < demoData.size(); dataIndex++)
     {
-        // just putting in alternating 1s and 0s
-        //demoData[dataIndex]._value = dataIndex % 2;
-        
         demoData[dataIndex]._value = dataIndex;
-
-        //demoData[dataIndex]._value = dataIndex * 2;
     }
-    //std::random_shuffle(demoData.begin(), demoData.end());
 
-    //printRepeating(demoData);
+    // scramble it
+    std::random_shuffle(demoData.begin(), demoData.end());
 
     // upload the data
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, originalData->BufferId());
@@ -184,8 +137,6 @@ void Init()
     parallelSort->Sort();
 
 
-    //void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, bufferSizeBytes, GL_MAP_READ_BIT);
-    //std::vector<OriginalData> sortedData
     printf("");
 
     // the timer will be used for framerate calculations
@@ -384,7 +335,7 @@ int main(int argc, char *argv[])
     glutInitContextProfile(GLUT_CORE_PROFILE);
 
     // enable this for automatic message reporting (see OpenGlErrorHandling.cpp)
-//#define DEBUG
+#define DEBUG
 #ifdef DEBUG
     glutInitContextFlags(GLUT_DEBUG);
 #endif
