@@ -5,8 +5,7 @@
 
 #include "Include/SSBOs/SsboBase.h"
 #include "Include/SSBOs/PrefixSumSsbo.h"
-#include "Include/SSBOs/IntermediateDataFirstBuffer.h"
-#include "Include/SSBOs/IntermediateDataSecondBuffer.h"
+#include "Include/SSBOs/IntermediateDataSsbo.h"
 #include "Include/SSBOs/OriginalDataSsbo.h"
 #include "Include/SSBOs/OriginalDataCopySsbo.h"
 
@@ -19,9 +18,9 @@ public:
     ParallelSort(const OriginalDataSsbo::UNIQUE_PTR &dataToSort);
 
     // TODO: use C++'s std::chrono for microsecond measurement of assigning Morton Codes
-    // TODO: repeat for the radix sort
+    // TODO: repeat for the Radix Sort
     // TODO: once all Morton Codes are being sorted, go off on a branch and try the approach of "prefix sums", then "scan and sort", then "prefix sums", then "scan and sort", repeat for all 15 bit-pairs (or heck, maybe 10 bit-triplets)
-    // TODO: repeat timing for the multi-summon radix sort
+    // TODO: repeat timing for the multi-summon Radix Sort
     void Sort();
     //void Sort(const SsboBase *originalDataBuffer);
 

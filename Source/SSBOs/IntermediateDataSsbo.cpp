@@ -1,4 +1,4 @@
-#include "Include/SSBOs/IntermediateDataFirstBuffer.h"
+#include "Include/SSBOs/IntermediateDataSsbo.h"
 
 #include "ThirdParty/glload/include/glload/gl_4_4.h"
 #include "Shaders/ComputeHeaders/SsboBufferBindings.comp"

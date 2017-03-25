@@ -17,31 +17,17 @@ Description:
     Grabs a bit from the "read" buffer of the IntermediateSortBuffers and puts it into the 
     PrefixScanBuffer::PrefixSumsWithinGroup array.
 
-    This is part of the radix sort algorithm.
+    This is part of the Radix Sort algorithm.
 Parameters: None
 Returns:    None
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 void main()
 {
-    // Note: Thread count should be the size of the PrefixScanBuffer::PrefixSumsWithinGroup array.  The 
-    // uniform uIntermediateBufferSize should be the same value, so either will work.
-
     // this calculation eliminates an older if-then conditional branch to select buffer 1 or buffer 2 (TODO: ??performance increase??)
-    uint threadIndex = gl_GlobalInvocationID.x;
+    uint intermediateDataReadIndex = gl_GlobalInvocationID.x;
     uint readFromSecondBuffer = uint(!bool(uWriteToSecondIntermediateBuffer));
-    threadIndex += (readFromSecondBuffer * uIntermediateBufferHalfSize);
-
-    //if (uReadFromFirstIntermediateBuffer == 0)
-    //{
-    //    //bitVal = AllIntermediateDataSecondBuffer[index]._data & bitMask;
-    //    bitVal = (AllIntermediateDataSecondBuffer[threadIndex]._data >> uBitNumber) & 1;
-    //}
-    //else 
-    //{
-    //    //bitVal = AllIntermediateDataFirstBuffer[index]._data & bitMask;
-    //    bitVal = (AllIntermediateDataFirstBuffer[threadIndex]._data >> uBitNumber) & 1;
-    //}
+    intermediateDataReadIndex += (readFromSecondBuffer * uIntermediateBufferHalfSize);
 
     // extract the bit value, NOT the positional bit value
     // Ex: What is the value of the 3rd bit in 0b101011?
@@ -52,26 +38,15 @@ void main()
     // Also Note: The "& 1" is very important.  This is 32bit land (at the time of this demo), 
     // so there are 31 0s to left of the 1, and they will strip off any additional 1s in the 
     // value, leaving just the value of the desired bit.
-    uint bitVal = (IntermediateDataBuffer[threadIndex]._data >> uBitNumber) & 1;
-    PrefixSumsWithinGroup[threadIndex] = bitVal;
+    uint bitVal = (IntermediateDataBuffer[intermediateDataReadIndex]._data >> uBitNumber) & 1;
 
 
+    // Note: Thread count should be the size of the PrefixScanBuffer::PrefixSumsWithinGroup 
+    // array, so no special calculations are required for the "write" index.
+    PrefixSumsWithinGroup[gl_GlobalInvocationID.x] = bitVal;
 
-    //// Note: The radix sorting procedure described in the GPU Gems 3 article on parallel prefix 
-    //// scan that inspired this demo runs the prefix scan on the number of 0s, not the numbers of 
-    //// 1s as is normally done in a prefix scan.  But ParallelPrefixScan doesn't need to know 
-    //// that :).  It just needs 0s and 1s.  For application, see SortIntermediateData.comp.
-    //PrefixSumsWithinGroup[threadIndex] = 0;
-    //if (bitVal == 0)
-    //{
-    //    PrefixSumsWithinGroup[threadIndex] = 1;
-    //}
-    //else
-    //{
-    //    PrefixSumsWithinGroup[threadIndex] = 0;
-    //}
 
-    // clear out the PrefixSumsPerGroup array
+    // clear out the PrefixSumsByGroup array
     // Note: This is more than just cleanup.  The ParallelPrefixScan on all the data will only 
     // fill out the per-work-group sum for each work group in use, NOT for each work group that 
     // is NOT in use.  If the sums of the work groups that are not in use are not cleared, then 
@@ -81,8 +56,8 @@ void main()
     // size of 1 work group, so the only guaranteed-to-exist is work group 0.
     if (gl_WorkGroupID.x == 0)
     {
-        // the PrefixScanBuffer::PrefixSumsPerGroup array is twice the size of the work group
-        PrefixSumsPerGroup[(gl_LocalInvocationID.x * 2)] = 0;
-        PrefixSumsPerGroup[(gl_LocalInvocationID.x * 2) + 1] = 0;
+        // the PrefixScanBuffer::PrefixSumsByGroup array is twice the size of the work group
+        PrefixSumsByGroup[(gl_LocalInvocationID.x * 2)] = 0;
+        PrefixSumsByGroup[(gl_LocalInvocationID.x * 2) + 1] = 0;
     }
 }

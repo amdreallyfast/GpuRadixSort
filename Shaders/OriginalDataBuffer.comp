@@ -30,7 +30,7 @@ layout (std430, binding = ORIGINAL_DATA_BUFFER_BINDING) buffer OriginalDataBuffe
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    At the end of the parallel radix sort, the original data needs to be sorted.  Doing this in 
+    At the end of the parallel Radix Sort, the original data needs to be sorted.  Doing this in 
     parallel requires making a copy of the original data and then writing back to wherever in 
     the original buffer.  This buffer serves that purpose.
 

@@ -15,8 +15,8 @@ Description:
     See explanation of sizes in PrefixSumSsbo.
 
     Note: The totalNumberOfOnes value between the buffers is set during in the middle of the 
-    prefix scan algorithm of the PrefixSumsPerGroup array in the same manner that entries in 
-    PrefixSumsPerGroup are set in the middle of each work group's prefix scan of 
+    prefix scan algorithm of the PrefixSumsByGroup array in the same manner that entries in 
+    PrefixSumsByGroup are set in the middle of each work group's prefix scan of 
     PrefixSumsWithinGroup.  It is used along with uPrefixSumsWithinGroupSize in 
     SortIntermediateData.comp to determine the total number of 0s and thus the offset the 1s.
 
@@ -32,7 +32,7 @@ Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
 layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer PrefixScanBuffer
 {
-    uint PrefixSumsPerGroup[ITEMS_PER_WORK_GROUP];
+    uint PrefixSumsByGroup[ITEMS_PER_WORK_GROUP];
     uint totalNumberOfOnes;
     uint PrefixSumsWithinGroup[];
 };

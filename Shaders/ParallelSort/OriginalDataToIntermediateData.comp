@@ -15,7 +15,7 @@ Description:
 
     The original data that needs to be sorted may not be a simple set of integers, but rather 
     structures that have integers, floatas, and vec4s and are very unwieldy to move around after 
-    every prefix scan during the radix sort.  This shader takes the original data and fills out 
+    every prefix scan during the Radix Sort.  This shader takes the original data and fills out 
     a simple, intermediate structure that is much more easily moved around.
 Parameters: None
 Returns:    None
@@ -43,13 +43,11 @@ void main()
     }
     else    // >= uOriginalDataBufferSize
     {
-        // TODO: try UINT_MAX
         newThing._data = 0xffffffff;
     }
 
     // this is the beginning of the sorting, so put the values into the first buffer, no 
     // questions asked
-    //AllIntermediateDataFirstBuffer[threadIndex] = newThing;
     IntermediateDataBuffer[threadIndex] = newThing;
 
 

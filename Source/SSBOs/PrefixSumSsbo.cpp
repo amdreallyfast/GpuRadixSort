@@ -26,7 +26,7 @@ Description:
     though, so data set sizes often don't divide evenly by a work group size (256/512/etc.).  
 
     Solution: Make the variable data set sizes work with the algorithm's reliance on a power of 
-    2 by using maximum int values in the excess data.  This will make the radix sort see 1s
+    2 by using maximum int values in the excess data.  This will make the Radix Sort see 1s
     in every bit position and thus sort the excess data to the back.  Then the non-excess data 
     can be accessed using the same indices as the original data.
 
@@ -176,9 +176,9 @@ void PrefixSumSsbo::ConfigureUniforms(unsigned int computeProgramId) const
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    Returns the number of integers that have been allocated for the PrefixSumsPerGroup array.  
+    Returns the number of integers that have been allocated for the PrefixSumsByGroup array.  
     The constructor ensures that this is the size of 1, and only 1, work group's worth of data 
-    for the PrefixSumsPerGroup array.
+    for the PrefixSumsByGroup array.
 Parameters: None
 Returns:    
     See Description.

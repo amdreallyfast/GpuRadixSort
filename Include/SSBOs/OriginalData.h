@@ -25,7 +25,7 @@ struct OriginalData
     {
     }
 
-    // must be unsigned because radix sorting fails when it runs across a bit that does not 
+    // must be unsigned because Radix Sorting fails when it runs across a bit that does not 
     // contribute to the value's quantity
     unsigned int _value;
 };

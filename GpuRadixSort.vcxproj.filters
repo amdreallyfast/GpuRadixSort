@@ -29,14 +29,11 @@
     <ClCompile Include="Source\SSBOs\OriginalDataSsbo.cpp">
       <Filter>Source\SSBOs</Filter>
     </ClCompile>
-    <ClCompile Include="Source\SSBOs\IntermediateDataSecondBuffer.cpp">
-      <Filter>Source\SSBOs</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\SSBOs\IntermediateDataFirstBuffer.cpp">
-      <Filter>Source\SSBOs</Filter>
-    </ClCompile>
     <ClCompile Include="Source\ComputeControllers\ParallelSort.cpp">
       <Filter>Source\ComputeControllers</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\SSBOs\IntermediateDataSsbo.cpp">
+      <Filter>Source\SSBOs</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -67,12 +64,6 @@
     <ClInclude Include="Include\SSBOs\OriginalDataCopySsbo.h">
       <Filter>Include\SSBOs</Filter>
     </ClInclude>
-    <ClInclude Include="Include\SSBOs\IntermediateDataFirstBuffer.h">
-      <Filter>Include\SSBOs</Filter>
-    </ClInclude>
-    <ClInclude Include="Include\SSBOs\IntermediateDataSecondBuffer.h">
-      <Filter>Include\SSBOs</Filter>
-    </ClInclude>
     <ClInclude Include="Include\SSBOs\IntermediateData.h">
       <Filter>Include\SSBOs</Filter>
     </ClInclude>
@@ -81,6 +72,9 @@
     </ClInclude>
     <ClInclude Include="Include\ComputeControllers\ParallelSort.h">
       <Filter>Include\ComputeControllers</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\SSBOs\IntermediateDataSsbo.h">
+      <Filter>Include\SSBOs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
