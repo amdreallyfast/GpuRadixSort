@@ -141,6 +141,20 @@ void ParallelSort::Sort()
     // Note: See the explanation at the top of PrefixSumsSsbo.cpp for calculation explanation.
     unsigned int numItemsInPrefixScanBuffer = _prefixSumSsbo->NumDataEntries();
 
+    // for profiling
+    using namespace std::chrono;
+    steady_clock::time_point parallelSortStart = high_resolution_clock::now();
+    steady_clock::time_point start;
+    steady_clock::time_point end;
+    long long durationOriginalDataToIntermediateData;
+    long long durationDataVerification;
+    std::vector<long long> durationsGetBitForPrefixScan;
+    std::vector<long long> durationsPrefixScanAll;
+    std::vector<long long> durationsPrefixScanWorkGroupSums;
+    std::vector<long long> durationsSortIntermediateData;
+
+    cout << "sorting " << numItemsInPrefixScanBuffer << " items" << endl;
+
     // for ParallelPrefixScan.comp, which works on 2 items per thread
     int numWorkGroupsXByItemsPerWorkGroup = numItemsInPrefixScanBuffer / ITEMS_PER_WORK_GROUP;
     int remainder = numItemsInPrefixScanBuffer % ITEMS_PER_WORK_GROUP;
@@ -154,19 +168,6 @@ void ParallelSort::Sort()
     // working on a 1D array (X dimension), so these are always 1
     int numWorkGroupsY = 1;
     int numWorkGroupsZ = 1;
-
-    // for profiling
-    using namespace std::chrono;
-    steady_clock::time_point start;
-    steady_clock::time_point end;
-    long long durationOriginalDataToIntermediateData;
-    long long durationDataVerification;
-    std::vector<long long> durationsGetBitForPrefixScan;
-    std::vector<long long> durationsPrefixScanAll;
-    std::vector<long long> durationsPrefixScanWorkGroupSums;
-    std::vector<long long> durationsSortIntermediateData;
-
-    cout << "sorting " << numItemsInPrefixScanBuffer << " items" << endl;
 
     // moving original data to intermediate data is 1 item per thread
     start = high_resolution_clock::now();
@@ -184,15 +185,8 @@ void ParallelSort::Sort()
     unsigned int prefixSumBufferSizeBytes = totalItemsInPrefixSumBuffer * sizeof(unsigned int);
     void *prefixSumBufferMap = nullptr;
 
-    //std::vector<IntermediateData> intermediateDataPreSort(_prefixSumSsbo->NumDataEntries());
-    //std::vector<IntermediateData> intermediateDataPostSort(_prefixSumSsbo->NumDataEntries());
-    //unsigned int intermediateDataBufferSizeBytes = _prefixSumSsbo->NumDataEntries() * sizeof(IntermediateData);
-    //unsigned int startReadByte = 0;
-    //void *intermediateDataBufferMap = nullptr;
-
     std::vector<IntermediateData> intermediataDataCheckBuffer(_prefixSumSsbo->NumDataEntries() * 2);
     unsigned int intermediateDataBufferSizeBytes = intermediataDataCheckBuffer.size() * sizeof(IntermediateData);
-    unsigned int startReadIndex = 0;
     void *intermediateDataBufferMap = nullptr;
 
 
@@ -202,20 +196,9 @@ void ParallelSort::Sort()
     bool writeToSecondBuffer = true;
     for (unsigned int bitNumber = 0; bitNumber < 32; bitNumber++)
     {
-        //unsigned int writeBufferNumber = (unsigned int)writeToSecondBuffer;
-
         // this will either be 0 or half the size of IntermediateDataBuffer
         unsigned int intermediateDataReadBufferOffset = (unsigned int)!writeToSecondBuffer * numItemsInPrefixScanBuffer;
         unsigned int intermediateDataWriteBufferOffset = (unsigned int)writeToSecondBuffer * numItemsInPrefixScanBuffer;
-
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
-        //bool readFromSecondBuffer = !writeToSecondBuffer;
-        //startReadByte = (((unsigned int)readFromSecondBuffer) * numItemsInPrefixScanBuffer) * sizeof
-        //intermediateDataBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, startReadIndex, intermediateDataBufferSizeBytes, GL_MAP_READ_BIT);
-        //memcpy(intermediateDataPreSort.data(), intermediateDataBufferMap, intermediateDataBufferSizeBytes);
-        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
 
         // getting 1 bit value from intermediate data to prefix sum is 1 item per thread
         start = high_resolution_clock::now();
@@ -228,11 +211,13 @@ void ParallelSort::Sort()
         end = high_resolution_clock::now();
         durationsGetBitForPrefixScan.push_back(duration_cast<microseconds>(end - start).count());
 
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
-        //prefixSumBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, prefixSumBufferSizeBytes, GL_MAP_READ_BIT);
-        //memcpy(prefixSumBuffer1.data(), prefixSumBufferMap, prefixSumBufferSizeBytes);
-        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
+        prefixSumBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, prefixSumBufferSizeBytes, GL_MAP_READ_BIT);
+        memcpy(prefixSumBuffer1.data(), prefixSumBufferMap, prefixSumBufferSizeBytes);
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
 
         // prefix scan over all values
         // Note: Parallel prefix scan is 2 items per thread.
@@ -255,11 +240,11 @@ void ParallelSort::Sort()
         durationsPrefixScanWorkGroupSums.push_back(duration_cast<microseconds>(end - start).count());
 
 
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
-        //prefixSumBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, prefixSumBufferSizeBytes, GL_MAP_READ_BIT);
-        //memcpy(prefixSumBuffer2.data(), prefixSumBufferMap, prefixSumBufferSizeBytes);
-        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
+        prefixSumBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, prefixSumBufferSizeBytes, GL_MAP_READ_BIT);
+        memcpy(prefixSumBuffer2.data(), prefixSumBufferMap, prefixSumBufferSizeBytes);
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
         // and sort the intermediate data with the scanned values
@@ -277,14 +262,6 @@ void ParallelSort::Sort()
         writeToSecondBuffer = !writeToSecondBuffer;
 
 
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
-        //readFromSecondBuffer = !writeToSecondBuffer;
-        //startReadIndex = ((unsigned int)readFromSecondBuffer) * numItemsInPrefixScanBuffer;
-        //intermediateDataBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, startReadIndex, intermediateDataBufferSizeBytes, GL_MAP_READ_BIT);
-        //memcpy(intermediateDataPostSort.data(), intermediateDataBufferMap, intermediateDataBufferSizeBytes);
-        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
         intermediateDataBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, intermediateDataBufferSizeBytes, GL_MAP_READ_BIT);
         memcpy(intermediataDataCheckBuffer.data(), intermediateDataBufferMap, intermediateDataBufferSizeBytes);
@@ -294,6 +271,8 @@ void ParallelSort::Sort()
 
         printf("-\n");
     }
+
+    steady_clock::time_point parallelSortEnd = high_resolution_clock::now();
 
     // copy the data back and check
     // Note: At the end of the last loop, the "write" buffer became the "read" buffer, so that's 
@@ -334,6 +313,10 @@ void ParallelSort::Sort()
     std::ofstream outFile("durations.txt");
     if (outFile.is_open())
     {
+        long long totalParallelSortTime = duration_cast<microseconds>(parallelSortEnd - parallelSortStart).count();
+        cout << "total sort time: " << totalParallelSortTime << "\tmicroseconds" << endl;
+        outFile << "total sort time: " << totalParallelSortTime << "\tmicroseconds" << endl;
+
         cout << "original data to intermediate data: " << durationOriginalDataToIntermediateData << "\tmicroseconds" << endl;
         outFile << "original data to intermediate data: " << durationOriginalDataToIntermediateData << "\tmicroseconds" << endl;
 
