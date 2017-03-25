@@ -212,11 +212,11 @@ void ParallelSort::Sort()
         durationsGetBitForPrefixScan.push_back(duration_cast<microseconds>(end - start).count());
 
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
-        prefixSumBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, prefixSumBufferSizeBytes, GL_MAP_READ_BIT);
-        memcpy(prefixSumBuffer1.data(), prefixSumBufferMap, prefixSumBufferSizeBytes);
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
+        //prefixSumBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, prefixSumBufferSizeBytes, GL_MAP_READ_BIT);
+        //memcpy(prefixSumBuffer1.data(), prefixSumBufferMap, prefixSumBufferSizeBytes);
+        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
         // prefix scan over all values
@@ -240,11 +240,11 @@ void ParallelSort::Sort()
         durationsPrefixScanWorkGroupSums.push_back(duration_cast<microseconds>(end - start).count());
 
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
-        prefixSumBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, prefixSumBufferSizeBytes, GL_MAP_READ_BIT);
-        memcpy(prefixSumBuffer2.data(), prefixSumBufferMap, prefixSumBufferSizeBytes);
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
+        //prefixSumBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, prefixSumBufferSizeBytes, GL_MAP_READ_BIT);
+        //memcpy(prefixSumBuffer2.data(), prefixSumBufferMap, prefixSumBufferSizeBytes);
+        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
         // and sort the intermediate data with the scanned values
@@ -262,14 +262,14 @@ void ParallelSort::Sort()
         writeToSecondBuffer = !writeToSecondBuffer;
 
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
-        intermediateDataBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, intermediateDataBufferSizeBytes, GL_MAP_READ_BIT);
-        memcpy(intermediataDataCheckBuffer.data(), intermediateDataBufferMap, intermediateDataBufferSizeBytes);
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
+        //intermediateDataBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, intermediateDataBufferSizeBytes, GL_MAP_READ_BIT);
+        //memcpy(intermediataDataCheckBuffer.data(), intermediateDataBufferMap, intermediateDataBufferSizeBytes);
+        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
-        printf("-\n");
+        //printf("-\n");
     }
 
     steady_clock::time_point parallelSortEnd = high_resolution_clock::now();
