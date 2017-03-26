@@ -169,16 +169,6 @@ void ParallelSort::Sort()
     int numWorkGroupsY = 1;
     int numWorkGroupsZ = 1;
 
-    // moving original data to intermediate data is 1 item per thread
-    start = high_resolution_clock::now();
-    glUseProgram(_originalDataToIntermediateDataProgramId);
-    glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
-    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    end = high_resolution_clock::now();
-    durationOriginalDataToIntermediateData = duration_cast<microseconds>(end - start).count();
-    
-
-
     unsigned int totalItemsInPrefixSumBuffer = _prefixSumSsbo->NumDataEntries() + 1 + _prefixSumSsbo->NumPerGroupPrefixSums();
     std::vector<unsigned int> prefixSumBuffer1(totalItemsInPrefixSumBuffer);
     std::vector<unsigned int> prefixSumBuffer2(totalItemsInPrefixSumBuffer);
@@ -188,6 +178,22 @@ void ParallelSort::Sort()
     std::vector<IntermediateData> intermediataDataCheckBuffer(_prefixSumSsbo->NumDataEntries() * 2);
     unsigned int intermediateDataBufferSizeBytes = intermediataDataCheckBuffer.size() * sizeof(IntermediateData);
     void *intermediateDataBufferMap = nullptr;
+
+
+    // moving original data to intermediate data is 1 item per thread
+    start = high_resolution_clock::now();
+    glUseProgram(_originalDataToIntermediateDataProgramId);
+    glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
+    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    end = high_resolution_clock::now();
+    durationOriginalDataToIntermediateData = duration_cast<microseconds>(end - start).count();
+    
+
+    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
+    //intermediateDataBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, intermediateDataBufferSizeBytes, GL_MAP_READ_BIT);
+    //memcpy(intermediataDataCheckBuffer.data(), intermediateDataBufferMap, intermediateDataBufferSizeBytes);
+    //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
 
@@ -269,7 +275,7 @@ void ParallelSort::Sort()
         //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
-        //printf("-\n");
+        printf("-\n");
     }
 
     steady_clock::time_point parallelSortEnd = high_resolution_clock::now();

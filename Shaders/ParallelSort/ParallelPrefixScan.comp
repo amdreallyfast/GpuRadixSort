@@ -38,7 +38,7 @@ layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
 // create a shared memory buffer for fast memory operations (better than global), two items per 
 // thread, and initialize to 0
 // Note: By definition of keyword "shared", this is shared amongst all threads in a work group.
-shared uint[ITEMS_PER_WORK_GROUP] fastTempArr;// = uint[ITEMS_PER_WORK_GROUP](0);
+shared uint[ITEMS_PER_WORK_GROUP] fastTempArr = uint[ITEMS_PER_WORK_GROUP](0);
 
 
 /*------------------------------------------------------------------------------------------------
@@ -98,9 +98,15 @@ void CalculatePrefixSumsWithinGroup()
 //    }
 
 
-
-
-
+    // wait for all the threads in this group to do the shared memory initialization
+    // Note: Consider this code: 
+    //  shared uint[ITEMS_PER_WORK_GROUP] fastTempArr = uint[ITEMS_PER_WORK_GROUP](0);
+    // The left side of that statement is shared between all values of the work group, but after 
+    // some frustration and experimentation, I found that the right side seems to be run per 
+    // thread.  Not all the threads in a group will run simultaneously, so to prevent some 
+    // initial assignment of data followed by another thread in the group initializing the array 
+    // back to 0, make everyone wait until initialization is done.
+    barrier();
 
    // doubled because each thread deals with 2 items, so the shared data size is double the 
    // work group size, and everything dealing with indices also doubles them, so just make a 
