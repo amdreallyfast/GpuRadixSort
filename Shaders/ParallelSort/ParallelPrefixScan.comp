@@ -38,7 +38,11 @@ layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
 // create a shared memory buffer for fast memory operations (better than global), two items per 
 // thread, and initialize to 0
 // Note: By definition of keyword "shared", this is shared amongst all threads in a work group.
-shared uint[ITEMS_PER_WORK_GROUP] fastTempArr = uint[ITEMS_PER_WORK_GROUP](0);
+//shared uint[ITEMS_PER_WORK_GROUP] fastTempArr = uint[ITEMS_PER_WORK_GROUP](0);
+
+#define NUM_MEMORY_BANKS 32
+//#define THING_SIZE ITEMS_PER_WORK_GROUP + (ITEMS_PER_WORK_GROUP / NUM_MEMORY_BANKS)
+shared uint[ITEMS_PER_WORK_GROUP + (ITEMS_PER_WORK_GROUP / NUM_MEMORY_BANKS)] fastTempArr;
 
 
 /*------------------------------------------------------------------------------------------------
@@ -52,151 +56,169 @@ Creator:    John Cox, 3/16/2017
 ------------------------------------------------------------------------------------------------*/
 void CalculatePrefixSumsWithinGroup()
 {
-//    // from now on, only deal with the suff in your own work group
-//    // Note: Each thread deals with 2 items.
-//    uint workGroupStartingIndex = (gl_WorkGroupID.x * (gl_WorkGroupSize.x * 2));
-//    uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
+//    // wait for all the threads in this group to do the shared memory initialization
+//    // Note: Consider this code: 
+//    //  shared uint[ITEMS_PER_WORK_GROUP] fastTempArr = uint[ITEMS_PER_WORK_GROUP](0);
+//    // The left side of that statement is shared between all values of the work group, but after 
+//    // some frustration and experimentation, I found that the right side seems to be run per 
+//    // thread.  Not all the threads in a group will run simultaneously, so to prevent some 
+//    // initial assignment of data followed by another thread in the group initializing the array 
+//    // back to 0, make everyone wait until initialization is done.
+//    barrier();
 //
-//    uint indexMultiplierDueToDepth = 1;
-//    for (uint dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
-//    {
-//        barrier();
+//   // doubled because each thread deals with 2 items, so the shared data size is double the 
+//   // work group size, and everything dealing with indices also doubles them, so just make a 
+//   // doubled variable up front
+//   uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
+//   uint doubleGlobalThreadIndex = gl_GlobalInvocationID.x * 2;
 //
-//        if (gl_LocalInvocationID.x < dataPairs)
-//        {
-//            uint lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-//            uint greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+//   // Copy from global to shared data for a faster algorithm (and easier index calculations)
+//   // Note: Two elements per thread.
+//   fastTempArr[doubleGroupThreadIndex] = PrefixSumsWithinGroup[doubleGlobalThreadIndex];
+//   fastTempArr[doubleGroupThreadIndex + 1] = PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1];
 //
-//            PrefixSumsWithinGroup[greaterIndex] += PrefixSumsWithinGroup[lesserIndex];
-//        }
-//        indexMultiplierDueToDepth *= 2;
-//    }
+//   // called simply "offset" in the GPU Gems article, this is a multiplier that works in 
+//   // conjunction with the thread number to calculate which index pairs are being considered on 
+//   // each loop by each thread
+//   uint indexMultiplierDueToDepth = 1;
 //
-//    // only one thread should do these (prevents unnecessary writes)
-//    if (doubleGroupThreadIndex == 0)
-//    {
-//        PrefixSumsByGroup[gl_WorkGroupID.x] = PrefixSumsWithinGroup[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1];
-//        PrefixSumsWithinGroup[workGroupStartingIndex + ITEMS_PER_WORK_GROUP - 1] = 0;
-//    }
-//    indexMultiplierDueToDepth >>= 1;
+//   // going up divides pair count in half with each level
+//   for (uint dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
+//   {
+//       // wait for other threads in the group to catch up
+//       barrier();
 //
-//    for (uint dataPairs = 1; dataPairs < ITEMS_PER_WORK_GROUP; dataPairs *= 2)
-//    {
-//        barrier();
-//        
-//        if (gl_LocalInvocationID.x < dataPairs)
-//        {
-//            uint lesserIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-//            uint greaterIndex = workGroupStartingIndex + (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+//       // one pair per thread
+//       // Note: Going up the tree will require fewer pair operations at each level.  Local 
+//       // thread ID 0 will always be doing something, but higher thread numbers will start 
+//       // sitting out until the "going down the tree" loop
+//       if (gl_LocalInvocationID.x < dataPairs)
+//       {
+//           uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+//           uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 //
-//            uint temp = PrefixSumsWithinGroup[lesserIndex];
-//            PrefixSumsWithinGroup[lesserIndex] = PrefixSumsWithinGroup[greaterIndex];
-//            PrefixSumsWithinGroup[greaterIndex] += temp;
-//        }
+//           fastTempArr[greaterIndex] += fastTempArr[lesserIndex];
+//       }
 //
-//        indexMultiplierDueToDepth >>= 1;
-//    }
+//       // this is used in the "going down" loop, so do this even if the thread didn't do 
+//       // anything on this iteration
+//       indexMultiplierDueToDepth *= 2;
+//   }
+//
+//   // only one thread should do these (prevents unnecessary writes)
+//   if (doubleGroupThreadIndex == 0)
+//   {
+//       // write the work group sum to the group sums buffer
+//       // Note: After the "going up" loop finishes, the last item in the shared memory array 
+//       // has the sum of all items in the entire array.  The following "going down" loop will 
+//       // change the data into a prefix-only sums array, so record the entire sum while it is 
+//       // still available.
+//       PrefixSumsByGroup[gl_WorkGroupID.x] = fastTempArr[ITEMS_PER_WORK_GROUP - 1];
+//       
+//       // this is just part of the algorithm; I don't have an intuitive explanation
+//       fastTempArr[ITEMS_PER_WORK_GROUP - 1] = 0;
+//   }
+//
+//   // undo the last loop's indexMultiplierDueToDepth
+//   // Note: After the last loop, indexMultiplierDueToDepth had been multiplied by 2 as many 
+//   // times as dataPairs had been divided by 2, so it is now equivalent to ITEMS_PER_WORK_GROUP 
+//   // (assuming that it is a power of 2).  Divide by 2 so that it can be used to calculate the 
+//   // indices of the first data pair off the root.
+//   indexMultiplierDueToDepth >>= 1;
+//
+//   // going down multiplies pair count in half with each level
+//   for (uint dataPairs = 1; dataPairs < ITEMS_PER_WORK_GROUP; dataPairs *= 2)
+//   {
+//       // wait for the other threads in the group to catch up
+//       barrier();
+//
+//       // once again, group thread 0 is always working, but the others may need to sit out for 
+//       // a few loops
+//       if (gl_LocalInvocationID.x < dataPairs)
+//       {
+//           uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+//           uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+//
+//           // this is a swap and a sum, so need a temporary value
+//           uint temp = fastTempArr[lesserIndex];
+//           fastTempArr[lesserIndex] = fastTempArr[greaterIndex];
+//           fastTempArr[greaterIndex] += temp;
+//       }
+//
+//       // next level down will have twice the number of data pairs, so each index calculation 
+//       // needs half the offset due to depth
+//       indexMultiplierDueToDepth >>= 1;
+//   }
+//
+//   // write the data back, two elements per thread, but wait for all the group threads to 
+//   // finish their loops first
+//   barrier();
+//   PrefixSumsWithinGroup[doubleGlobalThreadIndex] = fastTempArr[doubleGroupThreadIndex];
+//   PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1] = fastTempArr[doubleGroupThreadIndex + 1];
 
 
-    // wait for all the threads in this group to do the shared memory initialization
-    // Note: Consider this code: 
-    //  shared uint[ITEMS_PER_WORK_GROUP] fastTempArr = uint[ITEMS_PER_WORK_GROUP](0);
-    // The left side of that statement is shared between all values of the work group, but after 
-    // some frustration and experimentation, I found that the right side seems to be run per 
-    // thread.  Not all the threads in a group will run simultaneously, so to prevent some 
-    // initial assignment of data followed by another thread in the group initializing the array 
-    // back to 0, make everyone wait until initialization is done.
+
     barrier();
 
-   // doubled because each thread deals with 2 items, so the shared data size is double the 
-   // work group size, and everything dealing with indices also doubles them, so just make a 
-   // doubled variable up front
-   uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
-   uint doubleGlobalThreadIndex = gl_GlobalInvocationID.x * 2;
+    uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
+    uint doubleGlobalThreadIndex = gl_GlobalInvocationID.x * 2;
 
-   // Copy from global to shared data for a faster algorithm (and easier index calculations)
-   // Note: Two elements per thread.
-   fastTempArr[doubleGroupThreadIndex] = PrefixSumsWithinGroup[doubleGlobalThreadIndex];
-   fastTempArr[doubleGroupThreadIndex + 1] = PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1];
+    uint sharedWriteIndexA = doubleGroupThreadIndex;
+    sharedWriteIndexA += (sharedWriteIndexA / NUM_MEMORY_BANKS);
+    uint sharedWriteIndexB = (doubleGroupThreadIndex + 1);
+    sharedWriteIndexB += (sharedWriteIndexB / NUM_MEMORY_BANKS);
 
-   // called simply "offset" in the GPU Gems article, this is a multiplier that works in 
-   // conjunction with the thread number to calculate which index pairs are being considered on 
-   // each loop by each thread
-   uint indexMultiplierDueToDepth = 1;
+    fastTempArr[sharedWriteIndexA] = PrefixSumsWithinGroup[doubleGlobalThreadIndex];
+    fastTempArr[sharedWriteIndexB] = PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1];
 
-   // going up divides pair count in half with each level
-   for (uint dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
-   {
-       // wait for other threads in the group to catch up
-       barrier();
+    uint indexMultiplierDueToDepth = 1;
+    for (uint dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
+    {
+        barrier();
+        if (gl_LocalInvocationID.x < dataPairs)
+        {
+            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            lesserIndex += (lesserIndex / NUM_MEMORY_BANKS);
 
-       // one pair per thread
-       // Note: Going up the tree will require fewer pair operations at each level.  Local 
-       // thread ID 0 will always be doing something, but higher thread numbers will start 
-       // sitting out until the "going down the tree" loop
-       if (gl_LocalInvocationID.x < dataPairs)
-       {
-           uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-           uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            greaterIndex += (greaterIndex / NUM_MEMORY_BANKS);
 
-           fastTempArr[greaterIndex] += fastTempArr[lesserIndex];
-       }
+            fastTempArr[greaterIndex] += fastTempArr[lesserIndex];
+        }
+        indexMultiplierDueToDepth *= 2;
+    }
 
-       // this is used in the "going down" loop, so do this even if the thread didn't do 
-       // anything on this iteration
-       indexMultiplierDueToDepth *= 2;
-   }
+    if (doubleGroupThreadIndex == 0)
+    {
+        uint lastSumIndex = (ITEMS_PER_WORK_GROUP - 1);
+        lastSumIndex += (lastSumIndex / NUM_MEMORY_BANKS);
+        PrefixSumsByGroup[gl_WorkGroupID.x] = fastTempArr[lastSumIndex];
+        fastTempArr[lastSumIndex] = 0;
+    }
 
-   // only one thread should do these (prevents unnecessary writes)
-   if (doubleGroupThreadIndex == 0)
-   {
-       // write the work group sum to the group sums buffer
-       // Note: After the "going up" loop finishes, the last item in the shared memory array 
-       // has the sum of all items in the entire array.  The following "going down" loop will 
-       // change the data into a prefix-only sums array, so record the entire sum while it is 
-       // still available.
-       PrefixSumsByGroup[gl_WorkGroupID.x] = fastTempArr[ITEMS_PER_WORK_GROUP - 1];
-       
-       // this is just part of the algorithm; I don't have an intuitive explanation
-       fastTempArr[ITEMS_PER_WORK_GROUP - 1] = 0;
-   }
+    indexMultiplierDueToDepth >>= 1;
+    for (uint dataPairs = 1; dataPairs < ITEMS_PER_WORK_GROUP; dataPairs *= 2)
+    {
+        barrier();
+        if (gl_LocalInvocationID.x < dataPairs)
+        {
+            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            lesserIndex += (lesserIndex / NUM_MEMORY_BANKS);
 
-   // undo the last loop's indexMultiplierDueToDepth
-   // Note: After the last loop, indexMultiplierDueToDepth had been multiplied by 2 as many 
-   // times as dataPairs had been divided by 2, so it is now equivalent to ITEMS_PER_WORK_GROUP 
-   // (assuming that it is a power of 2).  Divide by 2 so that it can be used to calculate the 
-   // indices of the first data pair off the root.
-   indexMultiplierDueToDepth >>= 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            greaterIndex += (greaterIndex / NUM_MEMORY_BANKS);
 
-   // going down multiplies pair count in half with each level
-   for (uint dataPairs = 1; dataPairs < ITEMS_PER_WORK_GROUP; dataPairs *= 2)
-   {
-       // wait for the other threads in the group to catch up
-       barrier();
+            uint temp = fastTempArr[lesserIndex];
+            fastTempArr[lesserIndex] = fastTempArr[greaterIndex];
+            fastTempArr[greaterIndex] += temp;
+        }
 
-       // once again, group thread 0 is always working, but the others may need to sit out for 
-       // a few loops
-       if (gl_LocalInvocationID.x < dataPairs)
-       {
-           uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-           uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+        indexMultiplierDueToDepth >>= 1;
+    }
 
-           // this is a swap and a sum, so need a temporary value
-           uint temp = fastTempArr[lesserIndex];
-           fastTempArr[lesserIndex] = fastTempArr[greaterIndex];
-           fastTempArr[greaterIndex] += temp;
-       }
-
-       // next level down will have twice the number of data pairs, so each index calculation 
-       // needs half the offset due to depth
-       indexMultiplierDueToDepth >>= 1;
-   }
-
-   // write the data back, two elements per thread, but wait for all the group threads to 
-   // finish their loops first
-   barrier();
-   PrefixSumsWithinGroup[doubleGlobalThreadIndex] = fastTempArr[doubleGroupThreadIndex];
-   PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1] = fastTempArr[doubleGroupThreadIndex + 1];
+    barrier();
+    PrefixSumsWithinGroup[doubleGlobalThreadIndex] = fastTempArr[sharedWriteIndexA];
+    PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1] = fastTempArr[sharedWriteIndexB];
 
 }
 

@@ -189,15 +189,6 @@ void ParallelSort::Sort()
     durationOriginalDataToIntermediateData = duration_cast<microseconds>(end - start).count();
     
 
-    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
-    //intermediateDataBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, intermediateDataBufferSizeBytes, GL_MAP_READ_BIT);
-    //memcpy(intermediataDataCheckBuffer.data(), intermediateDataBufferMap, intermediateDataBufferSizeBytes);
-    //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-
-
-
     // for 32bit unsigned integers, make 32 passes
     bool writeToSecondBuffer = true;
     for (unsigned int bitNumber = 0; bitNumber < 32; bitNumber++)

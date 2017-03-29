@@ -151,6 +151,7 @@ void Init()
 
     parallelSort = std::make_unique<ParallelSort>(originalData);
     parallelSort->Sort();
+    parallelSort->Sort();
 
 
     printf("");
