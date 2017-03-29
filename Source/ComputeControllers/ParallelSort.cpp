@@ -144,14 +144,14 @@ void ParallelSort::Sort()
     // for profiling
     using namespace std::chrono;
     steady_clock::time_point parallelSortStart = high_resolution_clock::now();
-    steady_clock::time_point start;
+    //steady_clock::time_point start;
     steady_clock::time_point end;
-    long long durationOriginalDataToIntermediateData;
-    long long durationDataVerification;
-    std::vector<long long> durationsGetBitForPrefixScan;
-    std::vector<long long> durationsPrefixScanAll;
-    std::vector<long long> durationsPrefixScanWorkGroupSums;
-    std::vector<long long> durationsSortIntermediateData;
+    //long long durationOriginalDataToIntermediateData = 0;
+    //long long durationDataVerification = 0;
+    //std::vector<long long> durationsGetBitForPrefixScan;
+    //std::vector<long long> durationsPrefixScanAll;
+    //std::vector<long long> durationsPrefixScanWorkGroupSums;
+    //std::vector<long long> durationsSortIntermediateData;
 
     cout << "sorting " << numItemsInPrefixScanBuffer << " items" << endl;
 
@@ -169,24 +169,24 @@ void ParallelSort::Sort()
     int numWorkGroupsY = 1;
     int numWorkGroupsZ = 1;
 
-    unsigned int totalItemsInPrefixSumBuffer = _prefixSumSsbo->NumDataEntries() + 1 + _prefixSumSsbo->NumPerGroupPrefixSums();
-    std::vector<unsigned int> prefixSumBuffer1(totalItemsInPrefixSumBuffer);
-    std::vector<unsigned int> prefixSumBuffer2(totalItemsInPrefixSumBuffer);
-    unsigned int prefixSumBufferSizeBytes = totalItemsInPrefixSumBuffer * sizeof(unsigned int);
-    void *prefixSumBufferMap = nullptr;
+    //unsigned int totalItemsInPrefixSumBuffer = _prefixSumSsbo->NumDataEntries() + 1 + _prefixSumSsbo->NumPerGroupPrefixSums();
+    //std::vector<unsigned int> prefixSumBuffer1(totalItemsInPrefixSumBuffer);
+    //std::vector<unsigned int> prefixSumBuffer2(totalItemsInPrefixSumBuffer);
+    //unsigned int prefixSumBufferSizeBytes = totalItemsInPrefixSumBuffer * sizeof(unsigned int);
+    //void *prefixSumBufferMap = nullptr;
 
-    std::vector<IntermediateData> intermediataDataCheckBuffer(_prefixSumSsbo->NumDataEntries() * 2);
-    unsigned int intermediateDataBufferSizeBytes = intermediataDataCheckBuffer.size() * sizeof(IntermediateData);
-    void *intermediateDataBufferMap = nullptr;
+    //std::vector<IntermediateData> intermediataDataCheckBuffer(_prefixSumSsbo->NumDataEntries() * 2);
+    //unsigned int intermediateDataBufferSizeBytes = intermediataDataCheckBuffer.size() * sizeof(IntermediateData);
+    //void *intermediateDataBufferMap = nullptr;
 
 
     // moving original data to intermediate data is 1 item per thread
-    start = high_resolution_clock::now();
+    //start = high_resolution_clock::now();
     glUseProgram(_originalDataToIntermediateDataProgramId);
     glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    end = high_resolution_clock::now();
-    durationOriginalDataToIntermediateData = duration_cast<microseconds>(end - start).count();
+    //end = high_resolution_clock::now();
+    //durationOriginalDataToIntermediateData = duration_cast<microseconds>(end - start).count();
     
 
     // for 32bit unsigned integers, make 32 passes
@@ -198,15 +198,15 @@ void ParallelSort::Sort()
         unsigned int intermediateDataWriteBufferOffset = (unsigned int)writeToSecondBuffer * numItemsInPrefixScanBuffer;
 
         // getting 1 bit value from intermediate data to prefix sum is 1 item per thread
-        start = high_resolution_clock::now();
+        //start = high_resolution_clock::now();
         glUseProgram(_getBitForPrefixScansProgramId);
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_READ_OFFSET, intermediateDataReadBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_WRITE_OFFSET, intermediateDataWriteBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
         glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        end = high_resolution_clock::now();
-        durationsGetBitForPrefixScan.push_back(duration_cast<microseconds>(end - start).count());
+        //end = high_resolution_clock::now();
+        //durationsGetBitForPrefixScan.push_back(duration_cast<microseconds>(end - start).count());
 
 
         //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
@@ -218,23 +218,23 @@ void ParallelSort::Sort()
 
         // prefix scan over all values
         // Note: Parallel prefix scan is 2 items per thread.
-        start = high_resolution_clock::now();
+        //start = high_resolution_clock::now();
         glUseProgram(_parallelPrefixScanProgramId);
         glUniform1ui(UNIFORM_LOCATION_CALCULATE_ALL, 1);
         glDispatchCompute(numWorkGroupsXByItemsPerWorkGroup, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        end = high_resolution_clock::now();
-        durationsPrefixScanAll.push_back(duration_cast<microseconds>(end - start).count());
+        //end = high_resolution_clock::now();
+        //durationsPrefixScanAll.push_back(duration_cast<microseconds>(end - start).count());
 
         // prefix scan over per-work-group sums
         // Note: The PrefixSumsByGroup array is sized to be exactly enough for 1 work group.  It 
         // makes the prefix sum easier than trying to eliminate excess threads.
-        start = high_resolution_clock::now();
+        //start = high_resolution_clock::now();
         glUniform1ui(UNIFORM_LOCATION_CALCULATE_ALL, 0);
         glDispatchCompute(1, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        end = high_resolution_clock::now();
-        durationsPrefixScanWorkGroupSums.push_back(duration_cast<microseconds>(end - start).count());
+        //end = high_resolution_clock::now();
+        //durationsPrefixScanWorkGroupSums.push_back(duration_cast<microseconds>(end - start).count());
 
 
         //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
@@ -245,15 +245,15 @@ void ParallelSort::Sort()
 
 
         // and sort the intermediate data with the scanned values
-        start = high_resolution_clock::now();
+        //start = high_resolution_clock::now();
         glUseProgram(_sortIntermediateDataProgramId);
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_READ_OFFSET, intermediateDataReadBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_WRITE_OFFSET, intermediateDataWriteBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
         glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        end = high_resolution_clock::now();
-        durationsSortIntermediateData.push_back(duration_cast<microseconds>(end - start).count());
+        //end = high_resolution_clock::now();
+        //durationsSortIntermediateData.push_back(duration_cast<microseconds>(end - start).count());
 
         // now switch intermediate buffers and do it again
         writeToSecondBuffer = !writeToSecondBuffer;
@@ -266,45 +266,45 @@ void ParallelSort::Sort()
         //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
-        printf("-\n");
+        //printf("-\n");
     }
 
     steady_clock::time_point parallelSortEnd = high_resolution_clock::now();
 
-    // copy the data back and check
-    // Note: At the end of the last loop, the "write" buffer became the "read" buffer, so that's 
-    // where the sorted data wound up.
-    start = high_resolution_clock::now();
-    bool readFromSecondBuffer = !writeToSecondBuffer;
-    unsigned int startingIndex = ((unsigned int)readFromSecondBuffer) * numItemsInPrefixScanBuffer;
-    std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanBuffer);
-    unsigned int halfBufferSizeBytes = checkIntermediateWriteBuffer.size() * sizeof(IntermediateData);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
-    void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, startingIndex, halfBufferSizeBytes, GL_MAP_READ_BIT);
-    memcpy(checkIntermediateWriteBuffer.data(), bufferPtr, halfBufferSizeBytes);
-    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    //// copy the data back and check
+    //// Note: At the end of the last loop, the "write" buffer became the "read" buffer, so that's 
+    //// where the sorted data wound up.
+    //start = high_resolution_clock::now();
+    //bool readFromSecondBuffer = !writeToSecondBuffer;
+    //unsigned int startingIndex = ((unsigned int)readFromSecondBuffer) * numItemsInPrefixScanBuffer;
+    //std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanBuffer);
+    //unsigned int halfBufferSizeBytes = checkIntermediateWriteBuffer.size() * sizeof(IntermediateData);
+    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
+    //void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, startingIndex, halfBufferSizeBytes, GL_MAP_READ_BIT);
+    //memcpy(checkIntermediateWriteBuffer.data(), bufferPtr, halfBufferSizeBytes);
+    //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-    // check
-    for (unsigned int i = 1; i < numItemsInPrefixScanBuffer; i++)
-    {
-        unsigned int val = checkIntermediateWriteBuffer[i]._data;
-        unsigned int prevVal = checkIntermediateWriteBuffer[i - 1]._data;
+    //// check
+    //for (unsigned int i = 1; i < numItemsInPrefixScanBuffer; i++)
+    //{
+    //    unsigned int val = checkIntermediateWriteBuffer[i]._data;
+    //    unsigned int prevVal = checkIntermediateWriteBuffer[i - 1]._data;
 
-        if (val == 0xffffffff)
-        {
-            // this was extra data that was padded on
-            continue;
-        }
+    //    if (val == 0xffffffff)
+    //    {
+    //        // this was extra data that was padded on
+    //        continue;
+    //    }
 
-        // the original data is 0 - N-1, 1 value at a time, so it's ok to hard code 
-        if (val < prevVal)
-        {
-            printf("value %u at index %u is >= previous value %u and index %u\n", val, i, prevVal, i - 1);
-        }
-    }
+    //    // the original data is 0 - N-1, 1 value at a time, so it's ok to hard code 
+    //    if (val < prevVal)
+    //    {
+    //        printf("value %u at index %u is >= previous value %u and index %u\n", val, i, prevVal, i - 1);
+    //    }
+    //}
 
     end = high_resolution_clock::now();
-    durationDataVerification = duration_cast<microseconds>(end - start).count();
+    //durationDataVerification = duration_cast<microseconds>(end - start).count();
 
     // write the results to stdout and to a text file so that I can dump them into an Excel spreadsheet
     std::ofstream outFile("durations.txt");
@@ -314,51 +314,51 @@ void ParallelSort::Sort()
         cout << "total sort time: " << totalParallelSortTime << "\tmicroseconds" << endl;
         outFile << "total sort time: " << totalParallelSortTime << "\tmicroseconds" << endl;
 
-        cout << "original data to intermediate data: " << durationOriginalDataToIntermediateData << "\tmicroseconds" << endl;
-        outFile << "original data to intermediate data: " << durationOriginalDataToIntermediateData << "\tmicroseconds" << endl;
+        //cout << "original data to intermediate data: " << durationOriginalDataToIntermediateData << "\tmicroseconds" << endl;
+        //outFile << "original data to intermediate data: " << durationOriginalDataToIntermediateData << "\tmicroseconds" << endl;
 
-        cout << "verifying data: " << durationDataVerification << "\tmicroseconds" << endl;
-        outFile << "verifying data: " << durationDataVerification << "\tmicroseconds" << endl;
+        //cout << "verifying data: " << durationDataVerification << "\tmicroseconds" << endl;
+        //outFile << "verifying data: " << durationDataVerification << "\tmicroseconds" << endl;
 
-        cout << "getting bits for prefix scan:" << endl;
-        outFile << "getting bits for prefix scan:" << endl;
-        for (size_t i = 0; i < durationsGetBitForPrefixScan.size(); i++)
-        {
-            cout << i << "\t" << durationsGetBitForPrefixScan[i] << "\tmicroseconds" << endl;
-            outFile << i << "\t" << durationsGetBitForPrefixScan[i] << "\tmicroseconds" << endl;
-        }
-        cout << endl;
-        outFile << endl;
+        //cout << "getting bits for prefix scan:" << endl;
+        //outFile << "getting bits for prefix scan:" << endl;
+        //for (size_t i = 0; i < durationsGetBitForPrefixScan.size(); i++)
+        //{
+        //    cout << i << "\t" << durationsGetBitForPrefixScan[i] << "\tmicroseconds" << endl;
+        //    outFile << i << "\t" << durationsGetBitForPrefixScan[i] << "\tmicroseconds" << endl;
+        //}
+        //cout << endl;
+        //outFile << endl;
 
-        cout << "times for prefix scan over all data:" << endl;
-        outFile << "times for prefix scan over all data:" << endl;
-        for (size_t i = 0; i < durationsPrefixScanAll.size(); i++)
-        {
-            cout << i << "\t" << durationsPrefixScanAll[i] << "\tmicroseconds" << endl;
-            outFile << i << "\t" << durationsPrefixScanAll[i] << "\tmicroseconds" << endl;
-        }
-        cout << endl;
-        outFile << endl;
+        //cout << "times for prefix scan over all data:" << endl;
+        //outFile << "times for prefix scan over all data:" << endl;
+        //for (size_t i = 0; i < durationsPrefixScanAll.size(); i++)
+        //{
+        //    cout << i << "\t" << durationsPrefixScanAll[i] << "\tmicroseconds" << endl;
+        //    outFile << i << "\t" << durationsPrefixScanAll[i] << "\tmicroseconds" << endl;
+        //}
+        //cout << endl;
+        //outFile << endl;
 
-        cout << "times for prefix scan over work group sums:" << endl;
-        outFile << "times for prefix scan over work group sums:" << endl;
-        for (size_t i = 0; i < durationsPrefixScanWorkGroupSums.size(); i++)
-        {
-            cout << i << "\t" << durationsPrefixScanWorkGroupSums[i] << "\tmicroseconds" << endl;
-            outFile << i << "\t" << durationsPrefixScanWorkGroupSums[i] << "\tmicroseconds" << endl;
-        }
-        cout << endl;
-        outFile << endl;
+        //cout << "times for prefix scan over work group sums:" << endl;
+        //outFile << "times for prefix scan over work group sums:" << endl;
+        //for (size_t i = 0; i < durationsPrefixScanWorkGroupSums.size(); i++)
+        //{
+        //    cout << i << "\t" << durationsPrefixScanWorkGroupSums[i] << "\tmicroseconds" << endl;
+        //    outFile << i << "\t" << durationsPrefixScanWorkGroupSums[i] << "\tmicroseconds" << endl;
+        //}
+        //cout << endl;
+        //outFile << endl;
 
-        cout << "times for sorting intermediate data:" << endl;
-        outFile << "times for sorting intermediate data:" << endl;
-        for (size_t i = 0; i < durationsSortIntermediateData.size(); i++)
-        {
-            cout << i << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
-            outFile << i << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
-        }
-        cout << endl;
-        outFile << endl;
+        //cout << "times for sorting intermediate data:" << endl;
+        //outFile << "times for sorting intermediate data:" << endl;
+        //for (size_t i = 0; i < durationsSortIntermediateData.size(); i++)
+        //{
+        //    cout << i << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
+        //    outFile << i << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
+        //}
+        //cout << endl;
+        //outFile << endl;
     }
     outFile.close();
 
