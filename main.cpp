@@ -71,6 +71,7 @@ Creator:    John Cox (3-7-2016)
 ------------------------------------------------------------------------------------------------*/
 void Init()
 {
+    // this OpenGL setup stuff is so that the frame rate text renders correctly
     glEnable(GL_CULL_FACE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
@@ -115,8 +116,15 @@ void Init()
     // to happen on the CPU side.
     originalData = std::make_unique<OriginalDataSsbo>(MAX_DATA_COUNT);
 
-    // generate dummy data for this demo
+    // generate data for this demo, then scramble it
     std::vector<OriginalData> demoData(originalData->NumItems());
+    for (size_t dataIndex = 0; dataIndex < demoData.size(); dataIndex++)
+    {
+        demoData[dataIndex]._value = dataIndex;
+    }
+    std::random_shuffle(demoData.begin(), demoData.end());
+
+    // for debugging
     //demoData[0]._value = 12;
     //demoData[1]._value = 1;
     //demoData[2]._value = 9;
@@ -133,13 +141,6 @@ void Init()
     //demoData[13]._value = 13;
     //demoData[14]._value = 10;
     //demoData[15]._value = 6;
-    for (size_t dataIndex = 0; dataIndex < demoData.size(); dataIndex++)
-    {
-        demoData[dataIndex]._value = dataIndex;
-    }
-    
-    // scramble it
-    std::random_shuffle(demoData.begin(), demoData.end());
 
     // upload the data
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, originalData->BufferId());
@@ -148,13 +149,15 @@ void Init()
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 
-
     parallelSort = std::make_unique<ParallelSort>(originalData);
+
+    // the sort's so nice, I did it twice
+    // Note: Actually, I did it twice because the first time is slowed down on the first calls 
+    // to the compute shaders as any data that OpenGL has staged in system memory is copied to 
+    // the GPU.  That doesn't happen on the second run through the shaders, so I just run the 
+    // whole sort a second run
     parallelSort->Sort();
     parallelSort->Sort();
-
-
-    printf("");
 
     // the timer will be used for framerate calculations
     gTimer.Start();

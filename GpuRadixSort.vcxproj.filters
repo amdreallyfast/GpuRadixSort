@@ -125,9 +125,6 @@
     <None Include="Shaders\ComputeHeaders\Version.comp">
       <Filter>Shaders\ComputeHeaders</Filter>
     </None>
-    <None Include="Shaders\ParallelSort\MortonCodePrefixSums.comp">
-      <Filter>Shaders\ParallelSort</Filter>
-    </None>
     <None Include="Shaders\ParallelSort\ParallelPrefixScan.comp">
       <Filter>Shaders\ParallelSort</Filter>
     </None>

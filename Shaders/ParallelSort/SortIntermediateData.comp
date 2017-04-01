@@ -12,12 +12,6 @@ layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
 // also used in GetBitForPrefixScans.comp (different uniform of course because different shader)
 layout(location = UNIFORM_LOCATION_BIT_NUMBER) uniform uint uBitNumber;
 
-
-
-// TODO: use a single IntermediateDataBuffer that is twice the size of PrefixScanBuffer::
-
-
-
 /*------------------------------------------------------------------------------------------------
 Description:
     Uses the Radix Sorting algorithm to sort the IntermediateData structures in the "read" 

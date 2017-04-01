@@ -64,9 +64,9 @@ ShaderStorage::~ShaderStorage()
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    Creates an empty string under the provided key that is ready to accept file contents from 
-    AddShaderFile(...).  Must be called prior to calling that function for the same program 
-    key.
+    Creates an empty section in the _shaderBinaries collection under the provided key that is 
+    ready to accept compiled binaries from AddAndCompileShaderFile(...).  Must be called prior 
+    to calling that function for the same program key.
 
     Prints errors to stderr.
 Parameters: 
@@ -88,7 +88,19 @@ void ShaderStorage::NewShader(const std::string &programKey)
     }
 }
 
-// TODO: header
+/*------------------------------------------------------------------------------------------------
+Description:
+    Creates an empty string under the provided key that is ready to accept file contents from 
+    AddPartialShaderFile(...).  Must be called prior to calling that function for the same program 
+    key.
+
+    Prints errors to stderr.
+Parameters: 
+    programKey  The name that will be used to refer to this shader for the rest of the program.
+                If it already exists, it prints a message to stderr and immediately returns.
+Returns:    None
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/
 void ShaderStorage::NewCompositeShader(const std::string &programKey)
 {
     if (_partialShaderContents.find(programKey) != _partialShaderContents.end())
@@ -470,7 +482,19 @@ GLint ShaderStorage::GetAttributeLocation(const std::string &programKey,
     return attributeLocation;
 }
 
-// TODO: header
+/*------------------------------------------------------------------------------------------------
+Description:
+    Creates an empty string under the provided key that is ready to accept file contents from 
+    AddPartialShaderFile(...).  Must be called prior to calling that function for the same program 
+    key.
+
+    Prints errors to stderr.
+Parameters: 
+    programKey  The name that will be used to refer to this shader for the rest of the program.
+                If it already exists, it prints a message to stderr and immediately returns.
+Returns:    None
+Creator:    John Cox, 3/2017
+------------------------------------------------------------------------------------------------*/
 GLuint ShaderStorage::CompileShader(const std::string &shaderAsString, const GLenum shaderType)
 {
     if (shaderAsString.empty())

@@ -2,7 +2,7 @@
 Description:
     This is a set of constants that is useful for avoiding repeat definitions or hard-coded 
     magic numbers in both ParallelSort.cpp and in ParallelPrefixScan.comp in order to make the 
-    buffer sizes and work group and max thread counts all line up.
+    buffer sizes and work group counts and max thread counts all line up.
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 

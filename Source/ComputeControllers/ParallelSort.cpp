@@ -25,8 +25,9 @@ Description:
     allocates various buffers for the sorting.  Buffer sizes are highly dependent on the size of
     the original data.  They are expected to remain constant after class creation.
 
-    The original data's SSBO MUST be passed in so that the uniform specifying buffer size can be
-    set for any compute shaders that use it.
+    The original data's SSBO MUST be passed in so that:
+    (1) The uniform specifying buffer size can be set for any compute shaders that use it.
+    (2) The sorted OriginalDataCopyBuffer can be copied back to the OriginalDataBuffer.
 Parameters:
     dataToSort  See Description.
 Returns:    None
@@ -77,8 +78,8 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
     shaderStorageRef.LinkShader(shaderKey);
     _getBitForPrefixScansProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
 
-    // run the prefix scan over PrefixScanBuffer::PrefixSumsWithinGroup, and after run the scan again 
-    // over PrefixScanBuffer::PrefixSumsByGroup
+    // run the prefix scan over PrefixScanBuffer::PrefixSumsWithinGroup, and after that run the 
+    // scan again over PrefixScanBuffer::PrefixSumsByGroup
     shaderKey = "parallel prefix scan";
     shaderStorageRef.NewCompositeShader(shaderKey);
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/Version.comp");
@@ -91,7 +92,7 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
     shaderStorageRef.LinkShader(shaderKey);
     _parallelPrefixScanProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
 
-    // and sort the "read" arry from IntermediateSortBuffers into the "write" array
+    // and finally sort the "read" array from IntermediateSortBuffers into the "write" array
     shaderKey = "sort intermediate data";
     shaderStorageRef.NewCompositeShader(shaderKey);
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/Version.comp");
@@ -105,7 +106,7 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
     shaderStorageRef.LinkShader(shaderKey);
     _sortIntermediateDataProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
 
-    // and sort the original data according to the sorted intermediate data
+    // after the loop, sort the original data according to the sorted intermediate data
     shaderKey = "sort original data";
     shaderStorageRef.NewCompositeShader(shaderKey);
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/Version.comp");
@@ -119,15 +120,16 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
     shaderStorageRef.LinkShader(shaderKey);
     _sortOriginalDataProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
 
-    // the size of the OriginalDataBuffer is needed by these shaders, and it is only known (as 
-    // per my design) by the OriginalDataSsbo object
+    // the size of the OriginalDataBuffer is needed by these shaders, and it is known (as 
+    // per my design) only by the OriginalDataSsbo object
     dataToSort->ConfigureConstantUniforms(_originalDataToIntermediateDataProgramId);
     dataToSort->ConfigureConstantUniforms(_sortOriginalDataProgramId);
 
     unsigned int originalDataSize = dataToSort->NumItems();
     _originalDataCopySsbo = std::make_unique<OriginalDataCopySsbo>(originalDataSize);
-
     _prefixSumSsbo = std::make_unique<PrefixSumSsbo>(originalDataSize);
+
+    // the PrefixScanBuffer is used in three shaders
     _prefixSumSsbo->ConfigureConstantUniforms(_getBitForPrefixScansProgramId);
     _prefixSumSsbo->ConfigureConstantUniforms(_parallelPrefixScanProgramId);
     _prefixSumSsbo->ConfigureConstantUniforms(_sortIntermediateDataProgramId);
@@ -142,17 +144,26 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
 
 }
 
-
 /*------------------------------------------------------------------------------------------------
 Description:
     This function is the main show of this demo.  It summons shaders to do the following:
     - Copy original data to intermediate data structures 
-    - Get bits one at a time from the values in the intermediate data structures
-    - Run the parallel prefix scan algorithm on those bit values
-    - Sort the intermediate data structures using the resulting prefix sums
+        Note: If you want to sort your OriginalData structure over a particular value, this is 
+        where you decide that.  The rest of the sorting works blindly, bit by bit, on the 
+        IntermediateData::_data value.
+
+    - Loop through all 32 bits in an unsigned integer
+        - Get bits one at a time from the values in the intermediate data structures
+        - Run the parallel prefix scan algorithm on those bit values by work group
+        - Run the parallel prefix scan over each work group's sum
+        - Sort the IntermediateData structures using the resulting prefix sums
+    - Sort the OriginalData items into a copy buffer using the sorted IntermediateData objects
+    - Copy the sorted copy buffer back into OriginalDataBuffer
+
+    The OriginalDataBuffer is now sorted.
 Parameters: None
 Returns:    None
-Creator:    John Cox
+Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 void ParallelSort::Sort()
 {
@@ -162,16 +173,19 @@ void ParallelSort::Sort()
     cout << "sorting " << numItemsInPrefixScanBuffer << " items" << endl;
 
     // for profiling
+    using namespace std::chrono;
+    steady_clock::time_point parallelSortStart;
+    steady_clock::time_point start;
+    steady_clock::time_point end;
     long long durationOriginalDataToIntermediateData = 0;
     long long durationDataVerification = 0;
     std::vector<long long> durationsGetBitForPrefixScan(32);
     std::vector<long long> durationsPrefixScanAll(32);
     std::vector<long long> durationsPrefixScanWorkGroupSums(32);
     std::vector<long long> durationsSortIntermediateData(32);
-    using namespace std::chrono;
-    steady_clock::time_point parallelSortStart = high_resolution_clock::now();
-    steady_clock::time_point start;
-    steady_clock::time_point end;
+
+    // begin
+    parallelSortStart = high_resolution_clock::now();
 
     // for ParallelPrefixScan.comp, which works on 2 items per thread
     int numWorkGroupsXByItemsPerWorkGroup = numItemsInPrefixScanBuffer / ITEMS_PER_WORK_GROUP;
@@ -187,17 +201,6 @@ void ParallelSort::Sort()
     int numWorkGroupsY = 1;
     int numWorkGroupsZ = 1;
 
-    //unsigned int totalItemsInPrefixSumBuffer = _prefixSumSsbo->NumDataEntries() + 1 + _prefixSumSsbo->NumPerGroupPrefixSums();
-    //std::vector<unsigned int> prefixSumBuffer1(totalItemsInPrefixSumBuffer);
-    //std::vector<unsigned int> prefixSumBuffer2(totalItemsInPrefixSumBuffer);
-    //unsigned int prefixSumBufferSizeBytes = totalItemsInPrefixSumBuffer * sizeof(unsigned int);
-    //void *prefixSumBufferMap = nullptr;
-
-    //std::vector<IntermediateData> intermediataDataCheckBuffer(_prefixSumSsbo->NumDataEntries() * 2);
-    //unsigned int intermediateDataBufferSizeBytes = intermediataDataCheckBuffer.size() * sizeof(IntermediateData);
-    //void *intermediateDataBufferMap = nullptr;
-
-
     // moving original data to intermediate data is 1 item per thread
     start = high_resolution_clock::now();
     glUseProgram(_originalDataToIntermediateDataProgramId);
@@ -206,7 +209,6 @@ void ParallelSort::Sort()
     end = high_resolution_clock::now();
     durationOriginalDataToIntermediateData = duration_cast<microseconds>(end - start).count();
     
-
     // for 32bit unsigned integers, make 32 passes
     bool writeToSecondBuffer = true;
     for (unsigned int bitNumber = 0; bitNumber < 32; bitNumber++)
@@ -225,14 +227,6 @@ void ParallelSort::Sort()
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         end = high_resolution_clock::now();
         durationsGetBitForPrefixScan[bitNumber] = (duration_cast<microseconds>(end - start).count());
-
-
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
-        //prefixSumBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, prefixSumBufferSizeBytes, GL_MAP_READ_BIT);
-        //memcpy(prefixSumBuffer1.data(), prefixSumBufferMap, prefixSumBufferSizeBytes);
-        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
 
         // prefix scan over all values
         // Note: Parallel prefix scan is 2 items per thread.
@@ -254,14 +248,6 @@ void ParallelSort::Sort()
         end = high_resolution_clock::now();
         durationsPrefixScanWorkGroupSums[bitNumber] = (duration_cast<microseconds>(end - start).count());
 
-
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
-        //prefixSumBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, prefixSumBufferSizeBytes, GL_MAP_READ_BIT);
-        //memcpy(prefixSumBuffer2.data(), prefixSumBufferMap, prefixSumBufferSizeBytes);
-        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-
         // and sort the intermediate data with the scanned values
         start = high_resolution_clock::now();
         glUseProgram(_sortIntermediateDataProgramId);
@@ -275,18 +261,10 @@ void ParallelSort::Sort()
 
         // now switch intermediate buffers and do it again
         writeToSecondBuffer = !writeToSecondBuffer;
-
-
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
-        //intermediateDataBufferMap = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, intermediateDataBufferSizeBytes, GL_MAP_READ_BIT);
-        //memcpy(intermediataDataCheckBuffer.data(), intermediateDataBufferMap, intermediateDataBufferSizeBytes);
-        //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        //glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-        //printf("-\n");
     }
 
-    // now use the sorted IntermediateData objects to sort the original data objects into a copy buffer (there is no "swap" in parallel sorting, so must write to a dedicated copy buffer
+    // now use the sorted IntermediateData objects to sort the original data objects into a copy 
+    // buffer (there is no "swap" in parallel sorting, so must write to a dedicated copy buffer
     start = high_resolution_clock::now();
     glUseProgram(_sortOriginalDataProgramId);
     unsigned int intermediateDataReadBufferOffset = (unsigned int)!writeToSecondBuffer * numItemsInPrefixScanBuffer;
@@ -307,39 +285,8 @@ void ParallelSort::Sort()
     end = high_resolution_clock::now();
     unsigned int durationCopySortedOriginalData = duration_cast<microseconds>(end - start).count();
 
+    // end sorting
     steady_clock::time_point parallelSortEnd = high_resolution_clock::now();
-
-    // copy the data back and check
-    // Note: At the end of the last loop, the "write" buffer became the "read" buffer, so that's 
-    // where the sorted data wound up.
-    //start = high_resolution_clock::now();
-    //bool readFromSecondBuffer = !writeToSecondBuffer;
-    //unsigned int startingIndex = ((unsigned int)readFromSecondBuffer) * numItemsInPrefixScanBuffer;
-    //std::vector<IntermediateData> checkIntermediateWriteBuffer(numItemsInPrefixScanBuffer);
-    //unsigned int halfBufferSizeBytes = checkIntermediateWriteBuffer.size() * sizeof(IntermediateData);
-    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _intermediateDataSsbo->BufferId());
-    //void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, startingIndex, halfBufferSizeBytes, GL_MAP_READ_BIT);
-    //memcpy(checkIntermediateWriteBuffer.data(), bufferPtr, halfBufferSizeBytes);
-    //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-
-    //// check
-    //for (unsigned int i = 1; i < numItemsInPrefixScanBuffer; i++)
-    //{
-    //    unsigned int val = checkIntermediateWriteBuffer[i]._data;
-    //    unsigned int prevVal = checkIntermediateWriteBuffer[i - 1]._data;
-
-    //    if (val == 0xffffffff)
-    //    {
-    //        // this was extra data that was padded on
-    //        continue;
-    //    }
-
-    //    // the original data is 0 - N-1, 1 value at a time, so it's ok to hard code 
-    //    if (val < prevVal)
-    //    {
-    //        printf("value %u at index %u is >= previous value %u and index %u\n", val, i, prevVal, i - 1);
-    //    }
-    //}
 
     // verify sorted data
     start = high_resolution_clock::now();
@@ -434,9 +381,6 @@ void ParallelSort::Sort()
         outFile << endl;
     }
     outFile.close();
-
-
-    printf("");
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
     glUseProgram(0);
