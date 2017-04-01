@@ -14,7 +14,7 @@ class SsboBase
 public:
     SsboBase();
     virtual ~SsboBase();
-    typedef std::unique_ptr<SsboBase> UNIQUE_PTR;
+    typedef std::shared_ptr<SsboBase> SHARED_PTR;
 
 
     // derived class needs customized Init(...) function to initialize member values

@@ -55,7 +55,7 @@
 Stopwatch gTimer;
 FreeTypeEncapsulated gTextAtlases;
 
-OriginalDataSsbo::UNIQUE_PTR originalData = nullptr;
+OriginalDataSsbo::SHARED_PTR originalData = nullptr;
 std::unique_ptr<ParallelSort> parallelSort = nullptr;
 
 const unsigned int MAX_DATA_COUNT = 1000000;
@@ -348,7 +348,7 @@ int main(int argc, char *argv[])
     displayMode = Defaults(displayMode, width, height);
 
     glutInitDisplayMode(displayMode);
-    glutInitContextVersion(4, 4);
+    glutInitContextVersion(4, 5);
     glutInitContextProfile(GLUT_CORE_PROFILE);
 
     // enable this for automatic message reporting (see OpenGlErrorHandling.cpp)
@@ -366,10 +366,15 @@ int main(int argc, char *argv[])
 
     glutSetOption(GLUT_ACTION_ON_WINDOW_CLOSE, GLUT_ACTION_CONTINUE_EXECUTION);
 
-    if (!glload::IsVersionGEQ(3, 3))
+    // Note: Compute shaders require at least OpenGL 4.3, but I'm pushing this to OpenGL 4.5 
+    // anyway.  This is an old check from a tutorial that I never bothered to change until 
+    // now (4-1-2017).
+    int requiredMajorVersion = 4;
+    int requiredMinorVersion = 5;
+    if (!glload::IsVersionGEQ(requiredMajorVersion, requiredMinorVersion))
     {
-        printf("Your OpenGL version is %i, %i. You must have at least OpenGL 3.3 to run this tutorial.\n",
-            glload::GetMajorVersion(), glload::GetMinorVersion());
+        printf("Your OpenGL version is %i, %i. You must have at least OpenGL %d.%d to run this tutorial.\n",
+            glload::GetMajorVersion(), glload::GetMinorVersion(), requiredMajorVersion, requiredMinorVersion);
         glutDestroyWindow(window);
         return 0;
     }

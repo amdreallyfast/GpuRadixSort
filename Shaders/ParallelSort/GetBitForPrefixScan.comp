@@ -47,10 +47,21 @@ void main()
     // the subsequent scan of all per-work-group sums will give an erroneous value to 
     // PrefixScanBuffer::totalNumberOfOnes.
     // Also Note: The only thread count guarantee in this shader is that it will be at least the
-    // size of 1 work group, so the only guaranteed-to-exist is work group 0.
+    // size of 1 work group, so the only work group that is guaranteed to exist is work group 0.
+    // Also Also Note: This reset cannot be performed in ParallelPrefixScan.comp because there 
+    // is no guaranteed work group launch order.  If I tried to say that, at the beginning of 
+    // the parallel prefix scan, work group 0's threads will clean out the PrefixSumsByGroup 
+    // array, it may be that (for example) work group 57 will launch before work group 0, so 
+    // that work group would record a value in PrefixSumsByGroup[57], but then work group 0 
+    // comes along afterwards and sets it to 0.  Whoops.  The only way to guarantee that these 
+    // will be set to 0 before running the prefix scan is to set them to 0 in a shader that runs 
+    // prior.
     if (gl_WorkGroupID.x == 0)
     {
-        // the PrefixScanBuffer::PrefixSumsByGroup array is twice the size of the work group
+        // ParallelPrefixScan.comp was designed to work on 2 items per thread (it's the unusual 
+        // one), so the PrefixScanBuffer::PrefixSumsByGroup is double the size of the work 
+        // group, but this shader only works on 1 item per thread, so need to double the thread 
+        // index
         PrefixSumsByGroup[(gl_LocalInvocationID.x * 2)] = 0;
         PrefixSumsByGroup[(gl_LocalInvocationID.x * 2) + 1] = 0;
     }

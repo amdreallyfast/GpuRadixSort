@@ -1,0 +1,41 @@
+// REQUIRES Version.comp
+// REQUIRES ParallelSortConstants.comp
+// - PARALLEL_SORT_WORK_GROUP_SIZE_X
+// REQUIRES SsboBufferBindings.comp
+// REQUIRES UniformLocations.comp
+// REQUIRES OriginalDataBuffer.comp
+// REQUIRES IntermediateSortBuffers.comp
+
+// Y and Z work group sizes default to 1
+layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
+
+
+// TODO: header
+void main()
+{
+    // one thread per original data item
+    // Note: This shader is almost like OriginalDataToIntermediateData.comp in reverse.  All the excess IntermediateData items had ._data = 0xffffffff and were thus sorted to the back, so ignore those.
+    uint globalIndex = gl_GlobalInvocationID.x;
+    if (globalIndex >= uOriginalDataBufferSize)
+    {
+        return;
+    }
+
+    // the offset determines which half of the IntermediateDataBuffer to read from
+    uint intermediateDataReadIndex = globalIndex + uIntermediateBufferReadOffset;
+    uint sourceIndex = IntermediateDataBuffer[intermediateDataReadIndex]._globalIndexOfOriginalData;
+
+    // the IntermediateData structure was already sorted according to its _data value, so whatever index it is at now is the same index where the original data should be 
+    uint destinationIndex = globalIndex;
+
+    // copy it to where it should be
+    // Note: After this, perform a glCopyBufferSubData(...) to copy the sorted original data back to the OriginalDataBuffer, where others can use it.
+    AllOriginalDataCopy[destinationIndex] = AllOriginalData[sourceIndex];
+    //AllOriginalDataCopy[destinationIndex]._value = 37;
+    //AllOriginalDataCopy[0]._value = 37;
+
+
+    // Note: There is no "swap" in parallel sorting, so this step REQUIRES that the original data have been copied into the copy buffer.  
+    //AllOriginalData[destinationIndex] = AllOriginalDataCopy[sourceIndex];
+
+}

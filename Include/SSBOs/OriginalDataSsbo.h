@@ -14,7 +14,7 @@ class OriginalDataSsbo : public SsboBase
 {
 public:
     OriginalDataSsbo(unsigned int numItems);
-    typedef std::unique_ptr<OriginalDataSsbo> UNIQUE_PTR;
+    typedef std::shared_ptr<OriginalDataSsbo> SHARED_PTR;
 
     void ConfigureConstantUniforms(unsigned int computeProgramId) const override;
     unsigned int NumItems() const;

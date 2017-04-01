@@ -12,17 +12,6 @@ Description:
 Creator:    John Cox, 3/11/2017
 ------------------------------------------------------------------------------------------------*/
 
-
-
-// TODO: 
-// use a temporary shared memory array instead of writing to global memory on each loop
-// - figure out how the "eliminate bank conflicts" thing works (I had an epiphany when going through the binary tree algorithm by hand, and I think that I can figure it out, but I need more paper)
-// 
-
-
-
-
-
 // REQUIRES Version.comp
 // REQUIRES ParallelSortConstants.comp
 // - PARALLEL_SORT_WORK_GROUP_SIZE_X

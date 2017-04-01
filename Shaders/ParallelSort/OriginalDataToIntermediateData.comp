@@ -28,7 +28,7 @@ void main()
     // the size of the user-provided data.  The number of threads is managed by 
     // ParallelSort::Sort() to be the same as the number of data entries that need to be filled 
     // out, so if the thread ID is greater than the number of user-provided data entries, pad 
-    // out the IntermediateData with values of max uint. (TODO: UINT_MAX)
+    // out the IntermediateData with values of max uint.
     // Also Note: Pad with max integer instead of 0s because the sorting will put items with the 
     // smallest value first, but entries that don't refer to any real data should be put at the 
     // back.  

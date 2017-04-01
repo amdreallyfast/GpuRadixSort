@@ -14,7 +14,7 @@ class PrefixSumSsbo : public SsboBase
 {
 public:
     PrefixSumSsbo(unsigned int numDataEntries);
-    typedef std::unique_ptr<PrefixSumSsbo> UNIQUE_PTR;
+    typedef std::shared_ptr<PrefixSumSsbo> SHARED_PTR;
 
     void ConfigureConstantUniforms(unsigned int computeProgramId) const override;
     unsigned int NumPerGroupPrefixSums() const;
