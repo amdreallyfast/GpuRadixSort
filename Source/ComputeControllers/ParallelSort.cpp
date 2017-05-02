@@ -179,6 +179,9 @@ void ParallelSort::Sort()
     steady_clock::time_point end;
     long long durationOriginalDataToIntermediateData = 0;
     long long durationDataVerification = 0;
+    std::vector<long long> durationsUseProgramGetBitForPrefixScan(32);
+    std::vector<long long> durationsUseProgramPrefixScan(32);
+    std::vector<long long> durationsUseProgramSortIntermediateData(32);
     std::vector<long long> durationsGetBitForPrefixScan(32);
     std::vector<long long> durationsPrefixScanAll(32);
     std::vector<long long> durationsPrefixScanWorkGroupSums(32);
@@ -201,11 +204,30 @@ void ParallelSort::Sort()
     int numWorkGroupsY = 1;
     int numWorkGroupsZ = 1;
 
+    GLuint query = 0;
+    glGenQueries(1, &query);
+
     // moving original data to intermediate data is 1 item per thread
     start = high_resolution_clock::now();
+    glBeginQuery(GL_TIME_ELAPSED, query);
     glUseProgram(_originalDataToIntermediateDataProgramId);
+    glFinish();
+    glEndQuery(GL_TIME_ELAPSED);
+
+    GLuint64 elapsed = 0;
+    glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsed);
+    double milliseconds = elapsed / 1000000.0;
+
+    glBeginQuery(GL_TIME_ELAPSED, query);
     glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    glEndQuery(GL_TIME_ELAPSED);
+
+    elapsed = 0;
+    glGetQueryObjectui64v(query, GL_QUERY_RESULT, &elapsed);
+    milliseconds = elapsed / 1000000.0;
+
+
     end = high_resolution_clock::now();
     durationOriginalDataToIntermediateData = duration_cast<microseconds>(end - start).count();
     
@@ -220,6 +242,10 @@ void ParallelSort::Sort()
         // getting 1 bit value from intermediate data to prefix sum is 1 item per thread
         start = high_resolution_clock::now();
         glUseProgram(_getBitForPrefixScansProgramId);
+        end = high_resolution_clock::now();
+        durationsUseProgramGetBitForPrefixScan[bitNumber] = (duration_cast<microseconds>(end - start).count());
+        
+        start = high_resolution_clock::now();
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_READ_OFFSET, intermediateDataReadBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_WRITE_OFFSET, intermediateDataWriteBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
@@ -232,6 +258,10 @@ void ParallelSort::Sort()
         // Note: Parallel prefix scan is 2 items per thread.
         start = high_resolution_clock::now();
         glUseProgram(_parallelPrefixScanProgramId);
+        end = high_resolution_clock::now();
+        durationsUseProgramPrefixScan[bitNumber] = (duration_cast<microseconds>(end - start).count());
+
+        start = high_resolution_clock::now();
         glUniform1ui(UNIFORM_LOCATION_CALCULATE_ALL, 1);
         glDispatchCompute(numWorkGroupsXByItemsPerWorkGroup, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -251,6 +281,10 @@ void ParallelSort::Sort()
         // and sort the intermediate data with the scanned values
         start = high_resolution_clock::now();
         glUseProgram(_sortIntermediateDataProgramId);
+        end = high_resolution_clock::now();
+        durationsUseProgramSortIntermediateData[bitNumber] = (duration_cast<microseconds>(end - start).count());
+
+        start = high_resolution_clock::now();
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_READ_OFFSET, intermediateDataReadBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_WRITE_OFFSET, intermediateDataWriteBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
@@ -344,8 +378,8 @@ void ParallelSort::Sort()
         outFile << "getting bits for prefix scan:" << endl;
         for (size_t i = 0; i < durationsGetBitForPrefixScan.size(); i++)
         {
-            cout << i << "\t" << durationsGetBitForPrefixScan[i] << "\tmicroseconds" << endl;
-            outFile << i << "\t" << durationsGetBitForPrefixScan[i] << "\tmicroseconds" << endl;
+            cout << i << "\t" << durationsUseProgramGetBitForPrefixScan[i] << "\t" << durationsGetBitForPrefixScan[i] << "\tmicroseconds" << endl;
+            outFile << i << "\t" << durationsUseProgramGetBitForPrefixScan[i] << "\t" << durationsGetBitForPrefixScan[i] << "\tmicroseconds" << endl;
         }
         cout << endl;
         outFile << endl;
@@ -354,8 +388,8 @@ void ParallelSort::Sort()
         outFile << "times for prefix scan over all data:" << endl;
         for (size_t i = 0; i < durationsPrefixScanAll.size(); i++)
         {
-            cout << i << "\t" << durationsPrefixScanAll[i] << "\tmicroseconds" << endl;
-            outFile << i << "\t" << durationsPrefixScanAll[i] << "\tmicroseconds" << endl;
+            cout << i << "\t" << durationsUseProgramPrefixScan[i] << "\t" << durationsPrefixScanAll[i] << "\tmicroseconds" << endl;
+            outFile << i << "\t" << durationsUseProgramPrefixScan[i] << "\t" << durationsPrefixScanAll[i] << "\tmicroseconds" << endl;
         }
         cout << endl;
         outFile << endl;
@@ -374,8 +408,8 @@ void ParallelSort::Sort()
         outFile << "times for sorting intermediate data:" << endl;
         for (size_t i = 0; i < durationsSortIntermediateData.size(); i++)
         {
-            cout << i << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
-            outFile << i << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
+            cout << i << "\t" << durationsUseProgramSortIntermediateData[i] << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
+            outFile << i << "\t" << durationsUseProgramSortIntermediateData[i] << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
         }
         cout << endl;
         outFile << endl;
