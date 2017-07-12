@@ -155,5 +155,14 @@
     <None Include="Shaders\ParallelSort\GetBitForPrefixScan.comp">
       <Filter>Shaders\ParallelSort</Filter>
     </None>
+    <None Include="Shaders\ParallelSort\ParallelPrefixScan1.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\ParallelPrefixScan2.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
+    <None Include="Shaders\ParallelSort\ParallelPrefixScan3.comp">
+      <Filter>Shaders\ParallelSort</Filter>
+    </None>
   </ItemGroup>
 </Project>

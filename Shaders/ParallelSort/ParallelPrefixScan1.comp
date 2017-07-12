@@ -1,0 +1,63 @@
+/*------------------------------------------------------------------------------------------------
+Description:
+    This is a parallel prefix sums algorithm that uses shared memory, a binary tree, and no 
+    atomic counters to build up a prefix sum within a work group.  This is advantageous because 
+    it uses fast shared memory instead of having many threads get in line to use atomic 
+    counters, of which there are a limited number, on global memory.
+
+    Thanks to developer.nvidia.com, GPU Gems 3, Chapter 39. Parallel Prefix Sum (Scan) with CUDA
+    for the algorithm (despite the code golfing variable names and lack of comments, at least 
+    they had pictures that I could eventually work out).
+    http://http.developer.nvidia.com/GPUGems3/gpugems3_ch39.html
+
+    In a previous version of this prefix scan, individual work groups performed their sums, and then another prefix scan was run on those sums.  This was necessary because the number of items being sorted was greater than what a single work group could handle, and the varrier() command only works within a work group.
+
+    In this version of the prefix scan, there are three stages:
+    - Get bit for each item, then perform the prefix sum up the tree for each work group.
+    - Sum the results of each work group to a total sum at the top of the tree, then sum back down.
+    - Complete the traversal down the tree to the leaf nodes.
+Creator:    John Cox, 3/11/2017
+------------------------------------------------------------------------------------------------*/
+
+// REQUIRES Version.comp
+// REQUIRES ParallelSortConstants.comp
+// REQUIRES UniformLocations.comp
+// REQUIRES SsboBufferBindings.comp
+// REQUIRES IntermediateSortBuffers.comp
+// REQUIRES PrefixScanBuffer.comp
+
+
+layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
+layout(location = UNIFORM_LOCATION_BIT_NUMBER) uniform uint uBitNumber;
+shared uint[ITEMS_PER_WORK_GROUP] fastTempArr;
+
+void main()
+{
+    uint intermediateDataReadIndex = gl_GlobalInvocationID.x + uIntermediateBufferReadOffset;
+    uint bitVal = (IntermediateDataBuffer[intermediateDataReadIndex]._data >> uBitNumber) & 1;
+    PrefixSumsWithinGroup[gl_GlobalInvocationID.x] = bitVal;
+    barrier();
+
+    uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
+    uint doubleGlobalThreadIndex = gl_GlobalInvocationID.x * 2;
+    fastTempArr[doubleGroupThreadIndex] = PrefixSumsWithinGroup[doubleGlobalThreadIndex];
+    fastTempArr[doubleGroupThreadIndex + 1] = PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1];
+
+    // going up
+    uint indexMultiplierDueToDepth = 1;
+    for (uint dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
+    {
+        barrier();
+        if (gl_LocalInvocationID.x < dataPairs)
+        {
+            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+
+            fastTempArr[greaterIndex] += fastTempArr[lesserIndex];
+        }
+        indexMultiplierDueToDepth *= 2;
+    }
+
+    PrefixSumsWithinGroup[doubleGlobalThreadIndex] = fastTempArr[doubleGroupThreadIndex];
+    PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1] = fastTempArr[doubleGroupThreadIndex + 1];
+}
