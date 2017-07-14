@@ -58,7 +58,7 @@ FreeTypeEncapsulated gTextAtlases;
 OriginalDataSsbo::SHARED_PTR originalData = nullptr;
 std::unique_ptr<ParallelSort> parallelSort = nullptr;
 
-const unsigned int MAX_DATA_COUNT = 1000000;
+const unsigned int MAX_DATA_COUNT = 100;
 
 /*------------------------------------------------------------------------------------------------
 Description:
@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
     glutInitContextProfile(GLUT_CORE_PROFILE);
 
     // enable this for automatic message reporting (see OpenGlErrorHandling.cpp)
-//#define DEBUG
+#define DEBUG
 #ifdef DEBUG
     glutInitContextFlags(GLUT_DEBUG);
 #endif

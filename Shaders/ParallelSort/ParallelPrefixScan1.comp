@@ -31,17 +31,24 @@ layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
 layout(location = UNIFORM_LOCATION_BIT_NUMBER) uniform uint uBitNumber;
 shared uint[ITEMS_PER_WORK_GROUP] fastTempArr;
 
+// TODO: header
 void main()
 {
-    uint intermediateDataReadIndex = gl_GlobalInvocationID.x + uIntermediateBufferReadOffset;
-    uint bitVal = (IntermediateDataBuffer[intermediateDataReadIndex]._data >> uBitNumber) & 1;
-    PrefixSumsWithinGroup[gl_GlobalInvocationID.x] = bitVal;
-    barrier();
+    // each thread works on 2 items
+    uint doubleThreadIndex = gl_GlobalInvocationID.x * 2;
+    if (doubleThreadIndex >= uIntermediateBufferHalfSize)
+    {
+        return;
+    }
 
-    uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
-    uint doubleGlobalThreadIndex = gl_GlobalInvocationID.x * 2;
-    fastTempArr[doubleGroupThreadIndex] = PrefixSumsWithinGroup[doubleGlobalThreadIndex];
-    fastTempArr[doubleGroupThreadIndex + 1] = PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1];
+    uint bitReadIndex = uIntermediateBufferReadOffset + doubleThreadIndex;
+    uint bitVal1 = (IntermediateDataBuffer[bitReadIndex]._data >> uBitNumber) & 1;
+    uint bitVal2 = (IntermediateDataBuffer[bitReadIndex + 1]._data >> uBitNumber) & 1;
+
+    uint localIndex = gl_LocalInvocationID.x * 2;
+    fastTempArr[localIndex] = bitVal1;
+    fastTempArr[localIndex + 1] = bitVal2;
+    barrier();
 
     // going up
     uint indexMultiplierDueToDepth = 1;
@@ -50,14 +57,14 @@ void main()
         barrier();
         if (gl_LocalInvocationID.x < dataPairs)
         {
-            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            uint lesserIndex = (indexMultiplierDueToDepth * (localIndex + 1)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (localIndex + 2)) - 1;
 
             fastTempArr[greaterIndex] += fastTempArr[lesserIndex];
         }
         indexMultiplierDueToDepth *= 2;
     }
 
-    PrefixSumsWithinGroup[doubleGlobalThreadIndex] = fastTempArr[doubleGroupThreadIndex];
-    PrefixSumsWithinGroup[doubleGlobalThreadIndex + 1] = fastTempArr[doubleGroupThreadIndex + 1];
+    PrefixSumsWithinGroup[doubleThreadIndex] = fastTempArr[localIndex];
+    PrefixSumsWithinGroup[doubleThreadIndex + 1] = fastTempArr[localIndex + 1];
 }

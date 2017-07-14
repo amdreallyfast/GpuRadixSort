@@ -15,7 +15,7 @@ void main()
     // reproduce the end of the "up the tree" loop for a starting position
     uint dataPairs = ITEMS_PER_WORK_GROUP >> 1;
     uint indexMultiplierDueToDepth = 1;
-    while (startingDataPairs > 0)
+    while (dataPairs > 0)
     {
         dataPairs >>= 1;                    // divide by 2
         indexMultiplierDueToDepth <<= 1;    // multiply by 2
@@ -26,7 +26,7 @@ void main()
     uint greaterSourceIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
     //??only need to check one of them??
-    if (lesserIndex < uIntermediateBufferHalfSize || greaterIndex < uIntermediateBufferHalfSize)
+    if (lesserSourceIndex < uIntermediateBufferHalfSize && greaterSourceIndex < uIntermediateBufferHalfSize)
     {
         fastTempArr[doubleGroupThreadIndex] = PrefixSumsWithinGroup[lesserSourceIndex];
         fastTempArr[doubleGroupThreadIndex + 1] = PrefixSumsWithinGroup[greaterSourceIndex];

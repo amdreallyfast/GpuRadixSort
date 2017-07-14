@@ -39,6 +39,11 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
     _parallelPrefixScanProgramId(0),
     _sortIntermediateDataProgramId(0),
     _sortOriginalDataProgramId(0),
+    
+    _alternatePrefixScan1ProgramId(0),
+    _alternatePrefixScan2ProgramId(0),
+    _alternatePrefixScan3ProgramId(0),
+
     _originalDataCopySsbo(nullptr),
     _intermediateDataSsbo(nullptr),
     _prefixSumSsbo(nullptr),
@@ -46,6 +51,48 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
 {
     ShaderStorage &shaderStorageRef = ShaderStorage::GetInstance();
     std::string shaderKey;
+
+
+    shaderKey = "alternate prefix scan 1";
+    shaderStorageRef.NewCompositeShader(shaderKey);
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/Version.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/UniformLocations.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/SsboBufferBindings.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelSortConstants.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/PrefixScanBuffer.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/IntermediateSortBuffers.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelPrefixScan1.comp");
+    shaderStorageRef.CompileCompositeShader(shaderKey, GL_COMPUTE_SHADER);
+    shaderStorageRef.LinkShader(shaderKey);
+    _alternatePrefixScan1ProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
+
+    shaderKey = "alternate prefix scan 2";
+    shaderStorageRef.NewCompositeShader(shaderKey);
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/Version.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/UniformLocations.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/SsboBufferBindings.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelSortConstants.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/PrefixScanBuffer.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/IntermediateSortBuffers.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelPrefixScan2.comp");
+    shaderStorageRef.CompileCompositeShader(shaderKey, GL_COMPUTE_SHADER);
+    shaderStorageRef.LinkShader(shaderKey);
+    _alternatePrefixScan2ProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
+
+    shaderKey = "alternate prefix scan 3";
+    shaderStorageRef.NewCompositeShader(shaderKey);
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/Version.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/UniformLocations.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/SsboBufferBindings.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelSortConstants.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/PrefixScanBuffer.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/IntermediateSortBuffers.comp");
+    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelPrefixScan3.comp");
+    shaderStorageRef.CompileCompositeShader(shaderKey, GL_COMPUTE_SHADER);
+    shaderStorageRef.LinkShader(shaderKey);
+    _alternatePrefixScan3ProgramId = shaderStorageRef.GetShaderProgram(shaderKey);
+
+
 
     // take a data structure that needs to be sorted by a value (must be unsigned int for radix 
     // sort to work) and put it into an intermediate structure that has the value and the index 
@@ -134,6 +181,11 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
     _prefixSumSsbo->ConfigureConstantUniforms(_parallelPrefixScanProgramId);
     _prefixSumSsbo->ConfigureConstantUniforms(_sortIntermediateDataProgramId);
 
+    _prefixSumSsbo->ConfigureConstantUniforms(_alternatePrefixScan1ProgramId);
+    _prefixSumSsbo->ConfigureConstantUniforms(_alternatePrefixScan2ProgramId);
+    _prefixSumSsbo->ConfigureConstantUniforms(_alternatePrefixScan3ProgramId);
+
+
     // see explanation in the PrefixSumSsbo constructor for why there are likely more entries in 
     // PrefixScanBuffer::PrefixSumsWithinGroup than the requested number of items that need sorting
     unsigned int numEntriesInPrefixSumBuffer = _prefixSumSsbo->NumDataEntries();
@@ -142,6 +194,12 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
     _intermediateDataSsbo->ConfigureConstantUniforms(_getBitForPrefixScansProgramId);
     _intermediateDataSsbo->ConfigureConstantUniforms(_sortIntermediateDataProgramId);
 
+
+    _intermediateDataSsbo->ConfigureConstantUniforms(_alternatePrefixScan1ProgramId);
+    _intermediateDataSsbo->ConfigureConstantUniforms(_alternatePrefixScan2ProgramId);
+    _intermediateDataSsbo->ConfigureConstantUniforms(_alternatePrefixScan3ProgramId);
+
+    printf("");
 }
 
 /*------------------------------------------------------------------------------------------------
@@ -231,6 +289,40 @@ void ParallelSort::Sort()
     end = high_resolution_clock::now();
     durationOriginalDataToIntermediateData = duration_cast<microseconds>(end - start).count();
     
+    {
+        bool writeToSecondBuffer = true;
+        unsigned int bitNumber = 0;
+        unsigned int intermediateDataReadBufferOffset = (unsigned int)!writeToSecondBuffer * numItemsInPrefixScanBuffer;
+        unsigned int intermediateDataWriteBufferOffset = (unsigned int)writeToSecondBuffer * numItemsInPrefixScanBuffer;
+
+        unsigned int startingIndex = (1 + _prefixSumSsbo->NumPerGroupPrefixSums()) * sizeof(int);
+        //std::vector<int> checkPrefixSum(_prefixSumSsbo->NumDataEntries() + 1 + _prefixSumSsbo->NumPerGroupPrefixSums());
+        std::vector<int> checkPrefixSum(_prefixSumSsbo->NumDataEntries());
+        unsigned int bufferSizeBytes = checkPrefixSum.size() * sizeof(int);
+        void *bufferPtr = nullptr;
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
+        bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, startingIndex, bufferSizeBytes, GL_MAP_READ_BIT);
+        memcpy(checkPrefixSum.data(), bufferPtr, bufferSizeBytes);
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+        glUseProgram(_alternatePrefixScan1ProgramId);
+        glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_READ_OFFSET, intermediateDataReadBufferOffset);
+        glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_WRITE_OFFSET, intermediateDataWriteBufferOffset);
+        glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
+        glDispatchCompute(numWorkGroupsXByItemsPerWorkGroup, numWorkGroupsY, numWorkGroupsZ);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, _prefixSumSsbo->BufferId());
+        bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, startingIndex, bufferSizeBytes, GL_MAP_READ_BIT);
+        memcpy(checkPrefixSum.data(), bufferPtr, bufferSizeBytes);
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+
+        printf("");
+    }
+
+
     // for 32bit unsigned integers, make 32 passes
     bool writeToSecondBuffer = true;
     for (unsigned int bitNumber = 0; bitNumber < 32; bitNumber++)

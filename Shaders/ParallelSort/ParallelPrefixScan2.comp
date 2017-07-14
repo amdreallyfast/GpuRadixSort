@@ -28,7 +28,7 @@ void main()
     uint greaterSourceIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
 
     //??only need to check one of them??
-    if (lesserIndex < uIntermediateBufferHalfSize || greaterIndex < uIntermediateBufferHalfSize)
+    if (lesserSourceIndex < uIntermediateBufferHalfSize && greaterSourceIndex < uIntermediateBufferHalfSize)
     {
         fastTempArr[doubleGroupThreadIndex] = PrefixSumsWithinGroup[lesserSourceIndex];
         fastTempArr[doubleGroupThreadIndex + 1] = PrefixSumsWithinGroup[greaterSourceIndex];
