@@ -12,76 +12,103 @@ shared uint[ITEMS_PER_WORK_GROUP] fastTempArr;
 void main()
 {
     // reproduce the end of the "up the tree" loop for a starting position
-    uint startingDataPairs = ITEMS_PER_WORK_GROUP >> 1;
-    uint dataPairs = uPrefixSumsWithinGroupSize >> 1;
+    //uint startingDataPairs = ITEMS_PER_WORK_GROUP >> 1;
+    //uint dataPairs = uPrefixSumsWithinGroupSize >> 1;
+    //uint indexMultiplierDueToDepth = 1;
+    //while (startingDataPairs > 0)
+    //{
+    //    startingDataPairs >>= 1;            // divide by 2
+    //    dataPairs >>= 1;                    // divide by 2
+    //    indexMultiplierDueToDepth <<= 1;    // multiply by 2
+    //}
+    ////indexMultiplierDueToDepth >>= 1;
+
+    uint numWorkGroupsToSum = uPrefixSumsWithinGroupSize / ITEMS_PER_WORK_GROUP;
+    uint startingDataPairs = numWorkGroupsToSum >> 1;
+    if (numWorkGroupsToSum % 2 == 1)
+    {
+        // each thread must handle 2 items, so an odd work group count must be counted as even
+        startingDataPairs++;
+    }
+
     uint indexMultiplierDueToDepth = 1;
-    while (startingDataPairs > 0)
+    for (uint dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
     {
-        startingDataPairs >>= 1;            // divide by 2
-        dataPairs >>= 1;                    // divide by 2
-        indexMultiplierDueToDepth <<= 1;    // multiply by 2
+        indexMultiplierDueToDepth <<= 1;
     }
 
-    uint localIndex = gl_LocalInvocationID.x * 2;
-    uint lesserSourceIndex = (indexMultiplierDueToDepth * (localIndex + 1)) - 1;
-    uint greaterSourceIndex = (indexMultiplierDueToDepth * (localIndex + 2)) - 1;
+    uint doubleLocalIndex = gl_LocalInvocationID.x * 2;
+    uint lesserSourceIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 1)) - 1;
+    uint greaterSourceIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 2)) - 1;
 
-    //??only need to check one of them??
-    if (lesserSourceIndex < uPrefixSumsWithinGroupSize && greaterSourceIndex < uPrefixSumsWithinGroupSize)
-    {
-        fastTempArr[localIndex] = PrefixSumsWithinGroup[lesserSourceIndex];
-        fastTempArr[localIndex + 1] = PrefixSumsWithinGroup[greaterSourceIndex];
-    }
-    else
-    {
-        fastTempArr[localIndex] = 0;
-        fastTempArr[localIndex + 1] = 0;
-    }
+    bool lesserSourceIndexValidRange = lesserSourceIndex < uPrefixSumsWithinGroupSize;
+    bool greaterSourceIndexValidRange = greaterSourceIndex < uPrefixSumsWithinGroupSize;
+    //if (!lesserSourceIndexValidRange && !greaterSourceIndexValidRange)
+    //{
+    //    // nothing for this thread to contribute
+    //    return;
+    //}
 
+//    // if the thread got here, the lesser index will be in range, but the greater might not
+//    // Ex: Prefix sums buffer holds 3072 items (1024 per work group).  Stage 1 summed each work group's values into indices 1023, 2047, and 3071.  That's 3 sums for this stage to work with.  Each thread handles 2 items, so thread #0 will have 2 items to work with, thread #1 will have 1 (the lesser index 3071), and the other threads will drop out.
+    fastTempArr[doubleLocalIndex] = lesserSourceIndexValidRange ? PrefixSumsWithinGroup[lesserSourceIndex] : 0;
+    fastTempArr[doubleLocalIndex + 1] = greaterSourceIndexValidRange ? PrefixSumsWithinGroup[greaterSourceIndex] : 0;
     barrier();
 
     // keep going up
-    while (dataPairs > 0)
+    uint localIndex = gl_LocalInvocationID.x;
+    indexMultiplierDueToDepth = 1;
+    for (uint dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
     {
         barrier();
-        if (gl_LocalInvocationID.x < dataPairs)
+        if (localIndex < dataPairs)
         {
-            uint lesserIndex = (indexMultiplierDueToDepth * (localIndex + 1)) - 1;
-            uint greaterIndex = (indexMultiplierDueToDepth * (localIndex + 2)) - 1;
+            uint lesserIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 1)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 2)) - 1;
 
             fastTempArr[greaterIndex] += fastTempArr[lesserIndex];
         }
         indexMultiplierDueToDepth <<= 1;    // *= 2
-        dataPairs >>= 1;                    // /= 2
     }
 
-    if (localIndex == 0)
+    if (doubleLocalIndex == 0)
     {
         fastTempArr[ITEMS_PER_WORK_GROUP - 1] = 0;
     }
     indexMultiplierDueToDepth >>= 1;
 
     // going down
-    while (dataPairs < startingDataPairs)
+    for (uint dataPairs = 1; dataPairs < ITEMS_PER_WORK_GROUP; dataPairs *= 2)
     {
         barrier();
-        if (gl_LocalInvocationID.x < dataPairs)
+        if (localIndex < dataPairs)
         {
-            uint lesserIndex = (indexMultiplierDueToDepth * (localIndex + 1)) - 1;
-            uint greaterIndex = (indexMultiplierDueToDepth * (localIndex + 2)) - 1;
+            uint lesserIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 1)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 2)) - 1;
 
             // the algorithm calls for a swap and sum
             uint temp = fastTempArr[lesserIndex];
             fastTempArr[lesserIndex] = fastTempArr[greaterIndex];
             fastTempArr[greaterIndex] += temp;
         }
-
         indexMultiplierDueToDepth >>= 1;    // /= 2
-        dataPairs <<= 1;                    // *= 2
     }
-
     barrier();
 
-    PrefixSumsWithinGroup[lesserSourceIndex] = fastTempArr[localIndex];
-    PrefixSumsWithinGroup[greaterSourceIndex] = fastTempArr[localIndex + 1];
+    if (lesserSourceIndexValidRange)
+    {
+        PrefixSumsWithinGroup[lesserSourceIndex] = fastTempArr[doubleLocalIndex];
+    }
+    if (greaterSourceIndexValidRange)
+    {
+        PrefixSumsWithinGroup[greaterSourceIndex] = fastTempArr[doubleLocalIndex + 1];
+    }
+//    PrefixSumsWithinGroup[doubleLocalIndex] = fastTempArr[doubleLocalIndex];
+//    PrefixSumsWithinGroup[doubleLocalIndex + 1] = fastTempArr[doubleLocalIndex + 1];
+    
+
+//    PrefixSumsWithinGroup[gl_GlobalInvocationID.x * 2] = lesserSourceIndex;
+//    PrefixSumsWithinGroup[(gl_GlobalInvocationID.x * 2) + 1] = greaterSourceIndex;
+//    PrefixSumsWithinGroup[lesserSourceIndex] = lesserSourceIndex;
+//    PrefixSumsWithinGroup[greaterSourceIndex] = greaterSourceIndex;
 }

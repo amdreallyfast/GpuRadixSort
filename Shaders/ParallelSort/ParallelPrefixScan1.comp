@@ -36,12 +36,13 @@ void main()
 {
     // each thread works on 2 items
     uint doubleThreadIndex = gl_GlobalInvocationID.x * 2;
-    if (doubleThreadIndex >= uIntermediateBufferHalfSize)
+    uint bitReadIndex = uIntermediateBufferReadOffset + doubleThreadIndex;
+    if (bitReadIndex >= uIntermediateBufferHalfSize ||
+       (bitReadIndex + 1) >= uIntermediateBufferHalfSize)
     {
         return;
     }
-
-    uint bitReadIndex = uIntermediateBufferReadOffset + doubleThreadIndex;
+    
     uint bitVal1 = (IntermediateDataBuffer[bitReadIndex]._data >> uBitNumber) & 1;
     uint bitVal2 = (IntermediateDataBuffer[bitReadIndex + 1]._data >> uBitNumber) & 1;
 
@@ -52,17 +53,18 @@ void main()
 
     // going up
     uint indexMultiplierDueToDepth = 1;
+    uint localIndex = gl_LocalInvocationID.x;
     for (uint dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
     {
         barrier();
-        if (gl_LocalInvocationID.x < dataPairs)
+        if (localIndex < dataPairs)
         {
             uint lesserIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 1)) - 1;
             uint greaterIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 2)) - 1;
 
             fastTempArr[greaterIndex] += fastTempArr[lesserIndex];
         }
-        indexMultiplierDueToDepth *= 2;
+        indexMultiplierDueToDepth <<= 1;    // *=2
     }
 
     PrefixSumsWithinGroup[doubleThreadIndex] = fastTempArr[doubleLocalIndex];

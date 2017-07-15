@@ -58,7 +58,7 @@ FreeTypeEncapsulated gTextAtlases;
 OriginalDataSsbo::SHARED_PTR originalData = nullptr;
 std::unique_ptr<ParallelSort> parallelSort = nullptr;
 
-const unsigned int MAX_DATA_COUNT = 100;
+const unsigned int MAX_DATA_COUNT = 2200;
 
 /*------------------------------------------------------------------------------------------------
 Description:

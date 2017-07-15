@@ -309,6 +309,10 @@ void ParallelSort::Sort()
         glDispatchCompute(numWorkGroupsXByItemsPerWorkGroup, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
+        glUseProgram(_alternatePrefixScan2ProgramId);
+        glDispatchCompute(1, numWorkGroupsY, numWorkGroupsZ);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
         glUseProgram(_alternatePrefixScan3ProgramId);
         glDispatchCompute(numWorkGroupsXByItemsPerWorkGroup, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -317,6 +321,12 @@ void ParallelSort::Sort()
         bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, startingIndex, bufferSizeBytes, GL_MAP_READ_BIT);
         memcpy(checkPrefixSum.data(), bufferPtr, bufferSizeBytes);
         glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+        //unsigned int count = 0;
+        //for (size_t i = 0; i < checkPrefixSum.size(); i++)
+        //{
+        //    count += checkPrefixSum[i];
+        //}
 
 
         printf("");

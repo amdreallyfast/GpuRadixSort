@@ -55,11 +55,11 @@ void main()
 
     barrier();
 
-    // TODO: remove once stage 2 is online
-    if (doubleLocalIndex == 0)
-    {
-        fastTempArr[ITEMS_PER_WORK_GROUP - 1] = 0;
-    }
+//    // TODO: remove once stage 2 is online
+//    if (doubleLocalIndex == 0)
+//    {
+//        fastTempArr[ITEMS_PER_WORK_GROUP - 1] = 0;
+//    }
 
 
 
