@@ -45,9 +45,9 @@ void main()
     uint bitVal1 = (IntermediateDataBuffer[bitReadIndex]._data >> uBitNumber) & 1;
     uint bitVal2 = (IntermediateDataBuffer[bitReadIndex + 1]._data >> uBitNumber) & 1;
 
-    uint localIndex = gl_LocalInvocationID.x * 2;
-    fastTempArr[localIndex] = bitVal1;
-    fastTempArr[localIndex + 1] = bitVal2;
+    uint doubleLocalIndex = gl_LocalInvocationID.x * 2;
+    fastTempArr[doubleLocalIndex] = bitVal1;
+    fastTempArr[doubleLocalIndex + 1] = bitVal2;
     barrier();
 
     // going up
@@ -57,14 +57,14 @@ void main()
         barrier();
         if (gl_LocalInvocationID.x < dataPairs)
         {
-            uint lesserIndex = (indexMultiplierDueToDepth * (localIndex + 1)) - 1;
-            uint greaterIndex = (indexMultiplierDueToDepth * (localIndex + 2)) - 1;
+            uint lesserIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 1)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 2)) - 1;
 
             fastTempArr[greaterIndex] += fastTempArr[lesserIndex];
         }
         indexMultiplierDueToDepth *= 2;
     }
 
-    PrefixSumsWithinGroup[doubleThreadIndex] = fastTempArr[localIndex];
-    PrefixSumsWithinGroup[doubleThreadIndex + 1] = fastTempArr[localIndex + 1];
+    PrefixSumsWithinGroup[doubleThreadIndex] = fastTempArr[doubleLocalIndex];
+    PrefixSumsWithinGroup[doubleThreadIndex + 1] = fastTempArr[doubleLocalIndex + 1];
 }

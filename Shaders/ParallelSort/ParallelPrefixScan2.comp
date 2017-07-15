@@ -2,7 +2,6 @@
 // REQUIRES ParallelSortConstants.comp
 // REQUIRES UniformLocations.comp
 // REQUIRES SsboBufferBindings.comp
-// REQUIRES IntermediateSortBuffers.comp
 // REQUIRES PrefixScanBuffer.comp
 
 
@@ -14,7 +13,7 @@ void main()
 {
     // reproduce the end of the "up the tree" loop for a starting position
     uint startingDataPairs = ITEMS_PER_WORK_GROUP >> 1;
-    uint dataPairs = uIntermediateBufferHalfSize >> 1;
+    uint dataPairs = uPrefixSumsWithinGroupSize >> 1;
     uint indexMultiplierDueToDepth = 1;
     while (startingDataPairs > 0)
     {
@@ -23,20 +22,20 @@ void main()
         indexMultiplierDueToDepth <<= 1;    // multiply by 2
     }
 
-    uint doubleGroupThreadIndex = gl_LocalInvocationID.x * 2;
-    uint lesserSourceIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-    uint greaterSourceIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+    uint localIndex = gl_LocalInvocationID.x * 2;
+    uint lesserSourceIndex = (indexMultiplierDueToDepth * (localIndex + 1)) - 1;
+    uint greaterSourceIndex = (indexMultiplierDueToDepth * (localIndex + 2)) - 1;
 
     //??only need to check one of them??
-    if (lesserSourceIndex < uIntermediateBufferHalfSize && greaterSourceIndex < uIntermediateBufferHalfSize)
+    if (lesserSourceIndex < uPrefixSumsWithinGroupSize && greaterSourceIndex < uPrefixSumsWithinGroupSize)
     {
-        fastTempArr[doubleGroupThreadIndex] = PrefixSumsWithinGroup[lesserSourceIndex];
-        fastTempArr[doubleGroupThreadIndex + 1] = PrefixSumsWithinGroup[greaterSourceIndex];
+        fastTempArr[localIndex] = PrefixSumsWithinGroup[lesserSourceIndex];
+        fastTempArr[localIndex + 1] = PrefixSumsWithinGroup[greaterSourceIndex];
     }
     else
     {
-        fastTempArr[doubleGroupThreadIndex] = 0;
-        fastTempArr[doubleGroupThreadIndex + 1] = 0;
+        fastTempArr[localIndex] = 0;
+        fastTempArr[localIndex + 1] = 0;
     }
 
     barrier();
@@ -47,8 +46,8 @@ void main()
         barrier();
         if (gl_LocalInvocationID.x < dataPairs)
         {
-            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            uint lesserIndex = (indexMultiplierDueToDepth * (localIndex + 1)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (localIndex + 2)) - 1;
 
             fastTempArr[greaterIndex] += fastTempArr[lesserIndex];
         }
@@ -56,7 +55,7 @@ void main()
         dataPairs >>= 1;                    // /= 2
     }
 
-    if (doubleGroupThreadIndex == 0)
+    if (localIndex == 0)
     {
         fastTempArr[ITEMS_PER_WORK_GROUP - 1] = 0;
     }
@@ -68,8 +67,8 @@ void main()
         barrier();
         if (gl_LocalInvocationID.x < dataPairs)
         {
-            uint lesserIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 1)) - 1;
-            uint greaterIndex = (indexMultiplierDueToDepth * (doubleGroupThreadIndex + 2)) - 1;
+            uint lesserIndex = (indexMultiplierDueToDepth * (localIndex + 1)) - 1;
+            uint greaterIndex = (indexMultiplierDueToDepth * (localIndex + 2)) - 1;
 
             // the algorithm calls for a swap and sum
             uint temp = fastTempArr[lesserIndex];
@@ -83,6 +82,6 @@ void main()
 
     barrier();
 
-    PrefixSumsWithinGroup[lesserSourceIndex] = fastTempArr[doubleGroupThreadIndex];
-    PrefixSumsWithinGroup[greaterSourceIndex] = fastTempArr[doubleGroupThreadIndex + 1];
+    PrefixSumsWithinGroup[lesserSourceIndex] = fastTempArr[localIndex];
+    PrefixSumsWithinGroup[greaterSourceIndex] = fastTempArr[localIndex + 1];
 }

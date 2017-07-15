@@ -73,7 +73,6 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/SsboBufferBindings.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelSortConstants.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/PrefixScanBuffer.comp");
-    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/IntermediateSortBuffers.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelPrefixScan2.comp");
     shaderStorageRef.CompileCompositeShader(shaderKey, GL_COMPUTE_SHADER);
     shaderStorageRef.LinkShader(shaderKey);
@@ -86,7 +85,6 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ComputeHeaders/SsboBufferBindings.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelSortConstants.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/PrefixScanBuffer.comp");
-    shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/IntermediateSortBuffers.comp");
     shaderStorageRef.AddPartialShaderFile(shaderKey, "Shaders/ParallelSort/ParallelPrefixScan3.comp");
     shaderStorageRef.CompileCompositeShader(shaderKey, GL_COMPUTE_SHADER);
     shaderStorageRef.LinkShader(shaderKey);
@@ -196,8 +194,6 @@ ParallelSort::ParallelSort(const OriginalDataSsbo::SHARED_PTR &dataToSort) :
 
 
     _intermediateDataSsbo->ConfigureConstantUniforms(_alternatePrefixScan1ProgramId);
-    _intermediateDataSsbo->ConfigureConstantUniforms(_alternatePrefixScan2ProgramId);
-    _intermediateDataSsbo->ConfigureConstantUniforms(_alternatePrefixScan3ProgramId);
 
     printf("");
 }
@@ -310,6 +306,10 @@ void ParallelSort::Sort()
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_READ_OFFSET, intermediateDataReadBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_WRITE_OFFSET, intermediateDataWriteBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
+        glDispatchCompute(numWorkGroupsXByItemsPerWorkGroup, numWorkGroupsY, numWorkGroupsZ);
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+        glUseProgram(_alternatePrefixScan3ProgramId);
         glDispatchCompute(numWorkGroupsXByItemsPerWorkGroup, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
