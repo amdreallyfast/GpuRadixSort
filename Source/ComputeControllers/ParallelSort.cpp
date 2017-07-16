@@ -196,12 +196,12 @@ void ParallelSort::Sort()
 
     // for profiling
     using namespace std::chrono;
-    steady_clock::time_point start;
-    steady_clock::time_point end;
-    long long durationOriginalDataToIntermediateData = 0;
-    long long durationDataVerification = 0;
-    std::vector<long long> durationsPrefixScan(32);
-    std::vector<long long> durationsSortIntermediateData(32);
+    //steady_clock::time_point start;
+    //steady_clock::time_point end;
+    //long long durationOriginalDataToIntermediateData = 0;
+    //long long durationDataVerification = 0;
+    //std::vector<long long> durationsPrefixScan(32);
+    //std::vector<long long> durationsSortIntermediateData(32);
 
     // begin
     steady_clock::time_point parallelSortStart = high_resolution_clock::now();
@@ -221,13 +221,13 @@ void ParallelSort::Sort()
     int numWorkGroupsZ = 1;
 
     // moving original data to intermediate data is 1 item per thread
-    start = high_resolution_clock::now();
+    //start = high_resolution_clock::now();
     glUseProgram(_originalDataToIntermediateDataProgramId);
     glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-    WaitForComputeToFinish();
-    end = high_resolution_clock::now();
-    durationOriginalDataToIntermediateData = duration_cast<microseconds>(end - start).count();
+    //WaitForComputeToFinish();
+    //end = high_resolution_clock::now();
+    //durationOriginalDataToIntermediateData = duration_cast<microseconds>(end - start).count();
 
     // for 32bit unsigned integers, make 32 passes
     bool writeToSecondBuffer = true;
@@ -238,7 +238,7 @@ void ParallelSort::Sort()
         unsigned int intermediateDataWriteBufferOffset = (unsigned int)writeToSecondBuffer * numItemsInPrefixScanBuffer;
 
         // prefix sums
-        start = high_resolution_clock::now();
+        //start = high_resolution_clock::now();
         glUseProgram(_prefixScanStage1ProgramId);
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_READ_OFFSET, intermediateDataReadBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_WRITE_OFFSET, intermediateDataWriteBufferOffset);
@@ -253,21 +253,21 @@ void ParallelSort::Sort()
         glUseProgram(_prefixScanStage3ProgramId);
         glDispatchCompute(numWorkGroupsXByItemsPerWorkGroup, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        WaitForComputeToFinish();
-        end = high_resolution_clock::now();
-        durationsPrefixScan[bitNumber] = duration_cast<microseconds>(end - start).count();
+        //WaitForComputeToFinish();
+        //end = high_resolution_clock::now();
+        //durationsPrefixScan[bitNumber] = duration_cast<microseconds>(end - start).count();
 
         // sort the intermediate data with the prefix sums
-        start = high_resolution_clock::now();
+        //start = high_resolution_clock::now();
         glUseProgram(_sortIntermediateDataProgramId);
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_READ_OFFSET, intermediateDataReadBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_WRITE_OFFSET, intermediateDataWriteBufferOffset);
         glUniform1ui(UNIFORM_LOCATION_BIT_NUMBER, bitNumber);
         glDispatchCompute(numWorkGroupsXByWorkGroupSize, numWorkGroupsY, numWorkGroupsZ);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        WaitForComputeToFinish();
-        end = high_resolution_clock::now();
-        durationsSortIntermediateData[bitNumber] = (duration_cast<microseconds>(end - start).count());
+        //WaitForComputeToFinish();
+        //end = high_resolution_clock::now();
+        //durationsSortIntermediateData[bitNumber] = (duration_cast<microseconds>(end - start).count());
 
         // now switch intermediate buffers and do it again
         writeToSecondBuffer = !writeToSecondBuffer;
@@ -290,40 +290,40 @@ void ParallelSort::Sort()
     glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 
     // end sorting
-    steady_clock::time_point parallelSortEnd = high_resolution_clock::now();
     WaitForComputeToFinish();
+    steady_clock::time_point parallelSortEnd = high_resolution_clock::now();
 
-    // verify sorted data
-    start = high_resolution_clock::now();
-    unsigned int startingIndex = 0;
-    std::vector<OriginalData> checkOriginalData(_originalDataSsbo->NumItems());
-    unsigned int bufferSizeBytes = checkOriginalData.size() * sizeof(OriginalData);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, _originalDataSsbo->BufferId());
-    void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, startingIndex, bufferSizeBytes, GL_MAP_READ_BIT);
-    memcpy(checkOriginalData.data(), bufferPtr, bufferSizeBytes);
-    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    //// verify sorted data
+    ////start = high_resolution_clock::now();
+    //unsigned int startingIndex = 0;
+    //std::vector<OriginalData> checkOriginalData(_originalDataSsbo->NumItems());
+    //unsigned int bufferSizeBytes = checkOriginalData.size() * sizeof(OriginalData);
+    //glBindBuffer(GL_SHADER_STORAGE_BUFFER, _originalDataSsbo->BufferId());
+    //void *bufferPtr = glMapBufferRange(GL_SHADER_STORAGE_BUFFER, startingIndex, bufferSizeBytes, GL_MAP_READ_BIT);
+    //memcpy(checkOriginalData.data(), bufferPtr, bufferSizeBytes);
+    //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-    // check
-    for (unsigned int i = 1; i < checkOriginalData.size(); i++)
-    {
-        unsigned int val = checkOriginalData[i]._value;
-        unsigned int prevVal = checkOriginalData[i - 1]._value;
+    //// check
+    //for (unsigned int i = 1; i < checkOriginalData.size(); i++)
+    //{
+    //    unsigned int val = checkOriginalData[i]._value;
+    //    unsigned int prevVal = checkOriginalData[i - 1]._value;
 
-        if (val == 0xffffffff)
-        {
-            // this was extra data that was padded on
-            continue;
-        }
+    //    if (val == 0xffffffff)
+    //    {
+    //        // this was extra data that was padded on
+    //        continue;
+    //    }
 
-        // the original data is 0 - N-1, 1 value at a time, so it's ok to hard code 
-        if (prevVal > val)
-        {
-            printf("value %u at index %u is >= previous value %u and index %u\n", val, i, prevVal, i - 1);
-        }
-    }
+    //    // the original data is 0 - N-1, 1 value at a time, so it's ok to hard code 
+    //    if (prevVal > val)
+    //    {
+    //        printf("value %u at index %u is >= previous value %u and index %u\n", val, i, prevVal, i - 1);
+    //    }
+    //}
 
-    end = high_resolution_clock::now();
-    durationDataVerification = duration_cast<microseconds>(end - start).count();
+    //end = high_resolution_clock::now();
+    //durationDataVerification = duration_cast<microseconds>(end - start).count();
 
     // write the results to stdout and to a text file so that I can dump them into an Excel spreadsheet
     std::ofstream outFile("durations.txt");
@@ -333,31 +333,31 @@ void ParallelSort::Sort()
         cout << "total sort time: " << totalParallelSortTime << "\tmicroseconds" << endl;
         outFile << "total sort time: " << totalParallelSortTime << "\tmicroseconds" << endl;
 
-        cout << "original data to intermediate data: " << durationOriginalDataToIntermediateData << "\tmicroseconds" << endl;
-        outFile << "original data to intermediate data: " << durationOriginalDataToIntermediateData << "\tmicroseconds" << endl;
-        
-        cout << "verifying data: " << durationDataVerification << "\tmicroseconds" << endl;
-        outFile << "verifying data: " << durationDataVerification << "\tmicroseconds" << endl;
+        //cout << "original data to intermediate data: " << durationOriginalDataToIntermediateData << "\tmicroseconds" << endl;
+        //outFile << "original data to intermediate data: " << durationOriginalDataToIntermediateData << "\tmicroseconds" << endl;
+        //
+        //cout << "verifying data: " << durationDataVerification << "\tmicroseconds" << endl;
+        //outFile << "verifying data: " << durationDataVerification << "\tmicroseconds" << endl;
 
-        cout << "prefix scan:" << endl;
-        outFile << "prefix scan:" << endl;
-        for (size_t i = 0; i < durationsPrefixScan.size(); i++)
-        {
-            cout << i << "\t" << durationsPrefixScan[i] << "\tmicroseconds" << endl;
-            outFile << i << "\t" << durationsPrefixScan[i] << "\tmicroseconds" << endl;
-        }
-        cout << endl;
-        outFile << endl;
+        //cout << "prefix scan:" << endl;
+        //outFile << "prefix scan:" << endl;
+        //for (size_t i = 0; i < durationsPrefixScan.size(); i++)
+        //{
+        //    cout << i << "\t" << durationsPrefixScan[i] << "\tmicroseconds" << endl;
+        //    outFile << i << "\t" << durationsPrefixScan[i] << "\tmicroseconds" << endl;
+        //}
+        //cout << endl;
+        //outFile << endl;
 
-        cout << "times for sorting intermediate data:" << endl;
-        outFile << "times for sorting intermediate data:" << endl;
-        for (size_t i = 0; i < durationsSortIntermediateData.size(); i++)
-        {
-            cout << i << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
-            outFile << i << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
-        }
-        cout << endl;
-        outFile << endl;
+        //cout << "times for sorting intermediate data:" << endl;
+        //outFile << "times for sorting intermediate data:" << endl;
+        //for (size_t i = 0; i < durationsSortIntermediateData.size(); i++)
+        //{
+        //    cout << i << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
+        //    outFile << i << "\t" << durationsSortIntermediateData[i] << "\tmicroseconds" << endl;
+        //}
+        //cout << endl;
+        //outFile << endl;
     }
     outFile.close();
 

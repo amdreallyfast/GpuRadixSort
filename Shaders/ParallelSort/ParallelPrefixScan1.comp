@@ -59,25 +59,13 @@ Creator:    John Cox, 7/2017
 ------------------------------------------------------------------------------------------------*/
 void main()
 {
+    // each half of the IntermediateDataBuffer is the same size as the AllPrefixSums buffer, 
+    // which is carefully sized so that every thread in the prefix scan work groups will be 
+    // within the buffer's boundaries, so no range checking is required here
     uint doubleThreadIndex = gl_GlobalInvocationID.x * 2;
-
-    // TODO:??remove??
-    AllPrefixSums[doubleThreadIndex] = 0;
-    AllPrefixSums[doubleThreadIndex + 1] = 0;
-    totalNumberOfOnes = 0;
-    
-    // TODO: ??remove buffer size check? IntermediateBufferSsbo says that each half is the same size as the AllPrefixSums buffer??
     uint bitReadIndex = uIntermediateBufferReadOffset + doubleThreadIndex;
-    uint bitVal1 = 0;
-    uint bitVal2 = 0;
-    if (doubleThreadIndex < uIntermediateBufferMaxEntries)
-    {
-        bitVal1 = (IntermediateDataBuffer[bitReadIndex]._data >> uBitNumber) & 1;
-    }
-    if ((doubleThreadIndex + 1) < uIntermediateBufferMaxEntries)
-    {
-        bitVal2 = (IntermediateDataBuffer[bitReadIndex + 1]._data >> uBitNumber) & 1;
-    }
+    uint bitVal1 = (IntermediateDataBuffer[bitReadIndex]._data >> uBitNumber) & 1;
+    uint bitVal2 = (IntermediateDataBuffer[bitReadIndex + 1]._data >> uBitNumber) & 1;
     
     uint doubleLocalIndex = gl_LocalInvocationID.x * 2;
     fastTempArr[doubleLocalIndex] = bitVal1;

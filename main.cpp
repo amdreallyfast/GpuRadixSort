@@ -157,7 +157,6 @@ void Init()
     // the GPU.  That doesn't happen on the second run through the shaders, so I just run the 
     // whole sort a second run
     parallelSort->Sort();
-    parallelSort->Sort();
 
     // the timer will be used for framerate calculations
     gTimer.Start();
@@ -176,6 +175,8 @@ void UpdateAllTheThings()
 {
     // just hard-code it for this demo
     float deltaTimeSec = 0.01f;
+
+    parallelSort->Sort();
 
     // tell glut to call this display() function again on the next iteration of the main loop
     // Note: https://www.opengl.org/discussion_boards/showthread.php/168717-I-dont-understand-what-glutPostRedisplay()-does
@@ -355,7 +356,7 @@ int main(int argc, char *argv[])
     glutInitContextProfile(GLUT_CORE_PROFILE);
 
     // enable this for automatic message reporting (see OpenGlErrorHandling.cpp)
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
     glutInitContextFlags(GLUT_DEBUG);
 #endif
