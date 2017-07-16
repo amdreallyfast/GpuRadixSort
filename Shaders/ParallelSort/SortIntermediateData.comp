@@ -40,7 +40,7 @@ void main()
     // shader deals with one entry per thread, so divide work group ID in half to get the right 
     // prefix sum
     uint prefixSumOfOnes = 
-        PrefixSumsByGroup[gl_WorkGroupID.x / 2] + 
+        //PrefixSumsByGroup[gl_WorkGroupID.x / 2] + 
         PrefixSumsWithinGroup[threadIndex];
 
     // there are only 0s and 1s, so if they weren't counted in the sum, then they are 0s

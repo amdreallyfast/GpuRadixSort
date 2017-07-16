@@ -50,6 +50,7 @@ void main()
 
     if (doubleLocalIndex == 0)
     {
+        totalNumberOfOnes = fastTempArr[ITEMS_PER_WORK_GROUP - 1];
         fastTempArr[ITEMS_PER_WORK_GROUP - 1] = 0;
     }
     indexMultiplierDueToDepth >>= 1;

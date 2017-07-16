@@ -52,19 +52,24 @@ shared uint[ITEMS_PER_WORK_GROUP] fastTempArr;
 // TODO: header
 void main()
 {
-    // each thread works on 2 items
     uint doubleThreadIndex = gl_GlobalInvocationID.x * 2;
+
+    PrefixSumsWithinGroup[doubleThreadIndex] = 0;
+    PrefixSumsWithinGroup[doubleThreadIndex + 1] = 0;
+    totalNumberOfOnes = 0;
+    
     uint bitReadIndex = uIntermediateBufferReadOffset + doubleThreadIndex;
-    if (bitReadIndex >= uIntermediateBufferHalfSize ||
-       (bitReadIndex + 1) >= uIntermediateBufferHalfSize)
+    uint bitVal1 = 0;
+    uint bitVal2 = 0;
+    if (doubleThreadIndex < uIntermediateBufferHalfSize)
     {
-        // if the work group count is correct in the shader dispatch, this shouldn't happen
-        return;
+        bitVal1 = (IntermediateDataBuffer[bitReadIndex]._data >> uBitNumber) & 1;
+    }
+    if ((doubleThreadIndex + 1) < uIntermediateBufferHalfSize)
+    {
+        bitVal2 = (IntermediateDataBuffer[bitReadIndex + 1]._data >> uBitNumber) & 1;
     }
     
-    uint bitVal1 = (IntermediateDataBuffer[bitReadIndex]._data >> uBitNumber) & 1;
-    uint bitVal2 = (IntermediateDataBuffer[bitReadIndex + 1]._data >> uBitNumber) & 1;
-
     uint doubleLocalIndex = gl_LocalInvocationID.x * 2;
     fastTempArr[doubleLocalIndex] = bitVal1;
     fastTempArr[doubleLocalIndex + 1] = bitVal2;
