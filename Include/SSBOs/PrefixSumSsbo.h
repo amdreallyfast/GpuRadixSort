@@ -17,10 +17,8 @@ public:
     typedef std::shared_ptr<PrefixSumSsbo> SHARED_PTR;
 
     void ConfigureConstantUniforms(unsigned int computeProgramId) const override;
-    unsigned int NumPerGroupPrefixSums() const;
     unsigned int NumDataEntries() const;
 
 private:
-    unsigned int _numPerGroupPrefixSums;
     unsigned int _numDataEntries;
 };

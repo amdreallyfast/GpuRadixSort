@@ -114,7 +114,6 @@ Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 PrefixSumSsbo::PrefixSumSsbo(unsigned int numDataEntries) :
     SsboBase(),  // generate buffers
-    _numPerGroupPrefixSums(0),
     _numDataEntries(0)
 {
     // see explanation essay at the top of the file
@@ -126,22 +125,10 @@ PrefixSumSsbo::PrefixSumSsbo(unsigned int numDataEntries) :
     _numDataEntries += (numDataEntries % ITEMS_PER_WORK_GROUP == 0) ? 0 : 1;
     _numDataEntries *= ITEMS_PER_WORK_GROUP;
 
-    // use one work group's worth of data for the per-work-group prefix sums
-    // Note: The prefix scan of the "per work group sums" is a necessary step in preparation for 
-    // Radix Sort, so the individual work groups' prefix sums are rather useless without the 
-    // results of each work group being tallied and one more chunk of data is required.  This 
-    // data will also have the prefix scan run on it, so it must be the size of one work group's 
-    // worth of data.  
-    // Also Note: If the original data set is larger than 
-    // ITEMS_PER_WORK_GROUP * ITEMS_PER_WORK_GROUP 
-    // (number of work group sums * amount of data that each work group operates on), then 
-    // ITEMS_PER_WORK_GROUP will need to be increased.
-    _numPerGroupPrefixSums = ITEMS_PER_WORK_GROUP;
-
     // the std::vector<...>(...) constructor will set everything to 0
     // Note: The +1 is because of a single uint in the buffer, totalNumberOfOnes.  See 
     // explanation in PrefixScanBuffer.comp.
-    std::vector<unsigned int> v(_numPerGroupPrefixSums + 1 + _numDataEntries);
+    std::vector<unsigned int> v(1 + _numDataEntries);
 
     // now bind this new buffer to the dedicated buffer binding location
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PREFIX_SCAN_BUFFER_BINDING, _bufferId);
@@ -170,23 +157,8 @@ void PrefixSumSsbo::ConfigureConstantUniforms(unsigned int computeProgramId) con
 {
     // the uniform should remain constant after this 
     glUseProgram(computeProgramId);
-    glUniform1ui(UNIFORM_LOCATION_ALL_PREFIX_SUMS_SIZE, _numDataEntries);
+    glUniform1ui(UNIFORM_LOCATION_ALL_PREFIX_SUMS_MAX_ENTRIES, _numDataEntries);
     glUseProgram(0);
-}
-
-/*------------------------------------------------------------------------------------------------
-Description:
-    Returns the number of integers that have been allocated for the PrefixSumsByGroup array.  
-    The constructor ensures that this is the size of 1, and only 1, work group's worth of data 
-    for the PrefixSumsByGroup array.
-Parameters: None
-Returns:    
-    See Description.
-Creator:    John Cox, 3/2017
-------------------------------------------------------------------------------------------------*/
-unsigned int PrefixSumSsbo::NumPerGroupPrefixSums() const
-{
-    return _numPerGroupPrefixSums;
 }
 
 /*------------------------------------------------------------------------------------------------

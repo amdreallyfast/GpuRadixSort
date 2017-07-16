@@ -49,14 +49,11 @@ public:
 
 private:
     unsigned int _originalDataToIntermediateDataProgramId;
-    unsigned int _getBitForPrefixScansProgramId;
-    unsigned int _parallelPrefixScanProgramId;
+    unsigned int _prefixScanStage1ProgramId;
+    unsigned int _prefixScanStage2ProgramId;
+    unsigned int _prefixScanStage3ProgramId;
     unsigned int _sortIntermediateDataProgramId;
     unsigned int _sortOriginalDataProgramId;
-
-    unsigned int _alternatePrefixScan1ProgramId;
-    unsigned int _alternatePrefixScan2ProgramId;
-    unsigned int _alternatePrefixScan3ProgramId;
 
     // these are unique to this class and are needed for sorting
     OriginalDataCopySsbo::SHARED_PTR _originalDataCopySsbo;

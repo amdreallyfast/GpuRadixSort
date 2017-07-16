@@ -10,15 +10,21 @@ layout(location = UNIFORM_LOCATION_BIT_NUMBER) uniform uint uBitNumber;
 shared uint[ITEMS_PER_WORK_GROUP] fastTempArr;
 
 
-// TODO: header
+/*------------------------------------------------------------------------------------------------
+Description:
+    This is stage 3 of the prefix scan: Bottom of tree-like-traversal (finish going down).
+Parameters: None
+Returns:    None
+Creator:    John Cox, 7/2017
+------------------------------------------------------------------------------------------------*/
 void main()
 {
     // if the work group count is correct in the shader dispatch, then these shouldn't be out of 
     // bounds of the PrefixScanBuffer or the fastTempArray
     uint doubleThreadIndex = gl_GlobalInvocationID.x * 2;
     uint doubleLocalIndex = gl_LocalInvocationID.x * 2;
-    fastTempArr[doubleLocalIndex] = PrefixSumsWithinGroup[doubleThreadIndex];
-    fastTempArr[doubleLocalIndex + 1] = PrefixSumsWithinGroup[doubleThreadIndex + 1];
+    fastTempArr[doubleLocalIndex] = AllPrefixSums[doubleThreadIndex];
+    fastTempArr[doubleLocalIndex + 1] = AllPrefixSums[doubleThreadIndex + 1];
 
     // reproduce the end of the "up the tree" loop for a starting position
     uint indexMultiplierDueToDepth = 1;
@@ -49,6 +55,6 @@ void main()
 
     // wait for the last write
     barrier();
-    PrefixSumsWithinGroup[doubleThreadIndex] = fastTempArr[doubleLocalIndex];
-    PrefixSumsWithinGroup[doubleThreadIndex + 1] = fastTempArr[doubleLocalIndex + 1];
+    AllPrefixSums[doubleThreadIndex] = fastTempArr[doubleLocalIndex];
+    AllPrefixSums[doubleThreadIndex + 1] = fastTempArr[doubleLocalIndex + 1];
 }

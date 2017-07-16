@@ -6,7 +6,7 @@
 Description:
     There is no "swap" in parallel sorting, so this buffer contains enough space for a 
     read/write pair of buffers, each of which is big enough to contain a 
-    PrefixScanBuffer::PrefixSumsWithinGroup array's size of info.
+    PrefixScanBuffer::AllPrefixSums array's size of info.
 
     Intended for use only by the ParallelSort compute controller so that all "num items" 
     calculations are contained.

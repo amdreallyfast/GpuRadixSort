@@ -1,141 +1,141 @@
-total sort time: 6212	microseconds
-original data to intermediate data: 841	microseconds
-duration sort original data into copy buffer: 39	microseconds
-duration copy sorted original data: 64	microseconds
-verifying data: 1094833	microseconds
+total sort time: 9564	microseconds
+original data to intermediate data: 2141	microseconds
+duration sort original data into copy buffer: 908	microseconds
+duration copy sorted original data: 1845	microseconds
+verifying data: 544377	microseconds
 getting bits for prefix scan:
-0	5	103	microseconds
-1	4	31	microseconds
-2	1	31	microseconds
-3	1	30	microseconds
-4	1	31	microseconds
-5	1	33	microseconds
-6	1	30	microseconds
-7	1	31	microseconds
-8	1	37	microseconds
-9	2	39	microseconds
-10	1	29	microseconds
-11	1	31	microseconds
-12	1	30	microseconds
-13	1	31	microseconds
-14	1	30	microseconds
-15	1	30	microseconds
-16	1	30	microseconds
-17	1	30	microseconds
-18	1	30	microseconds
-19	1	30	microseconds
-20	2	35	microseconds
-21	1	27	microseconds
-22	1	30	microseconds
-23	1	29	microseconds
-24	1	30	microseconds
-25	1	30	microseconds
-26	2	39	microseconds
-27	1	30	microseconds
-28	1	30	microseconds
-29	2	41	microseconds
-30	1	31	microseconds
-31	1	30	microseconds
+0	0	0	microseconds
+1	0	0	microseconds
+2	0	0	microseconds
+3	0	0	microseconds
+4	0	0	microseconds
+5	0	0	microseconds
+6	0	0	microseconds
+7	0	0	microseconds
+8	0	0	microseconds
+9	0	0	microseconds
+10	0	0	microseconds
+11	0	0	microseconds
+12	0	0	microseconds
+13	0	0	microseconds
+14	0	0	microseconds
+15	0	0	microseconds
+16	0	0	microseconds
+17	0	0	microseconds
+18	0	0	microseconds
+19	0	0	microseconds
+20	0	0	microseconds
+21	0	0	microseconds
+22	0	0	microseconds
+23	0	0	microseconds
+24	0	0	microseconds
+25	0	0	microseconds
+26	0	0	microseconds
+27	0	0	microseconds
+28	0	0	microseconds
+29	0	0	microseconds
+30	0	0	microseconds
+31	0	0	microseconds
 
 times for prefix scan over all data:
-0	10	42	microseconds
-1	1	30	microseconds
-2	2	41	microseconds
-3	1	29	microseconds
-4	1	30	microseconds
-5	2	54	microseconds
-6	1	33	microseconds
-7	1	30	microseconds
-8	2	50	microseconds
-9	2	30	microseconds
-10	1	30	microseconds
-11	1	30	microseconds
-12	1	30	microseconds
-13	1	29	microseconds
-14	1	30	microseconds
-15	1	29	microseconds
-16	1	29	microseconds
-17	1	29	microseconds
-18	1	29	microseconds
-19	1	29	microseconds
-20	2	40	microseconds
-21	2	26	microseconds
-22	1	29	microseconds
-23	1	29	microseconds
-24	1	30	microseconds
-25	1	30	microseconds
-26	2	45	microseconds
-27	2	30	microseconds
-28	1	22	microseconds
-29	1	31	microseconds
-30	1	30	microseconds
-31	1	30	microseconds
+0	0	0	microseconds
+1	0	0	microseconds
+2	0	0	microseconds
+3	0	0	microseconds
+4	0	0	microseconds
+5	0	0	microseconds
+6	0	0	microseconds
+7	0	0	microseconds
+8	0	0	microseconds
+9	0	0	microseconds
+10	0	0	microseconds
+11	0	0	microseconds
+12	0	0	microseconds
+13	0	0	microseconds
+14	0	0	microseconds
+15	0	0	microseconds
+16	0	0	microseconds
+17	0	0	microseconds
+18	0	0	microseconds
+19	0	0	microseconds
+20	0	0	microseconds
+21	0	0	microseconds
+22	0	0	microseconds
+23	0	0	microseconds
+24	0	0	microseconds
+25	0	0	microseconds
+26	0	0	microseconds
+27	0	0	microseconds
+28	0	0	microseconds
+29	0	0	microseconds
+30	0	0	microseconds
+31	0	0	microseconds
 
 times for prefix scan over work group sums:
-0	36	microseconds
-1	569	microseconds
-2	28	microseconds
-3	44	microseconds
-4	28	microseconds
-5	112	microseconds
-6	55	microseconds
-7	28	microseconds
-8	44	microseconds
-9	28	microseconds
-10	28	microseconds
-11	28	microseconds
-12	30	microseconds
-13	28	microseconds
-14	28	microseconds
-15	28	microseconds
-16	28	microseconds
-17	28	microseconds
-18	28	microseconds
-19	28	microseconds
-20	32	microseconds
-21	27	microseconds
-22	28	microseconds
-23	28	microseconds
-24	28	microseconds
-25	28	microseconds
-26	32	microseconds
-27	28	microseconds
-28	29	microseconds
-29	29	microseconds
-30	29	microseconds
-31	29	microseconds
+0	0	microseconds
+1	0	microseconds
+2	0	microseconds
+3	0	microseconds
+4	0	microseconds
+5	0	microseconds
+6	0	microseconds
+7	0	microseconds
+8	0	microseconds
+9	0	microseconds
+10	0	microseconds
+11	0	microseconds
+12	0	microseconds
+13	0	microseconds
+14	0	microseconds
+15	0	microseconds
+16	0	microseconds
+17	0	microseconds
+18	0	microseconds
+19	0	microseconds
+20	0	microseconds
+21	0	microseconds
+22	0	microseconds
+23	0	microseconds
+24	0	microseconds
+25	0	microseconds
+26	0	microseconds
+27	0	microseconds
+28	0	microseconds
+29	0	microseconds
+30	0	microseconds
+31	0	microseconds
 
 times for sorting intermediate data:
-0	2	32	microseconds
-1	4	43	microseconds
-2	2	30	microseconds
-3	2	41	microseconds
-4	1	30	microseconds
-5	2	36	microseconds
-6	2	27	microseconds
-7	1	30	microseconds
-8	2	50	microseconds
-9	1	30	microseconds
-10	1	30	microseconds
-11	1	30	microseconds
-12	1	36	microseconds
-13	1	30	microseconds
+0	2	23	microseconds
+1	1	23	microseconds
+2	2	24	microseconds
+3	1	30	microseconds
+4	2	25	microseconds
+5	1	22	microseconds
+6	1	26	microseconds
+7	2	29	microseconds
+8	1	26	microseconds
+9	3	27	microseconds
+10	2	30	microseconds
+11	1	26	microseconds
+12	2	27	microseconds
+13	2	30	microseconds
 14	1	30	microseconds
-15	1	30	microseconds
-16	1	30	microseconds
-17	1	30	microseconds
-18	1	30	microseconds
-19	1	30	microseconds
-20	2	39	microseconds
-21	1	30	microseconds
-22	1	30	microseconds
+15	2	26	microseconds
+16	2	29	microseconds
+17	2	26	microseconds
+18	1	26	microseconds
+19	1	26	microseconds
+20	1	29	microseconds
+21	1	22	microseconds
+22	2	25	microseconds
 23	1	30	microseconds
-24	1	30	microseconds
-25	1	29	microseconds
-26	2	30	microseconds
-27	1	30	microseconds
-28	1	31	microseconds
-29	2	31	microseconds
+24	2	30	microseconds
+25	2	30	microseconds
+26	2	26	microseconds
+27	2	23	microseconds
+28	1	26	microseconds
+29	1	29	microseconds
 30	1	30	microseconds
-31	1	30	microseconds
+31	1	31	microseconds
 

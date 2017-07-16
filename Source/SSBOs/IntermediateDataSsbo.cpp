@@ -13,7 +13,7 @@ Description:
     Initializes base class, then gives derived class members initial values and allocates space 
     for the SSBO.
 Parameters: 
-    numItems    MUST be the same size as PrefixScanBuffer::PrefixSumsWithinGroup.
+    numItems    MUST be the same size as PrefixScanBuffer::AllPrefixSums.
 Returns:    None
 Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
@@ -50,7 +50,7 @@ void IntermediateDataSsbo::ConfigureConstantUniforms(unsigned int computeProgram
 {
     // the uniform should remain constant after this 
     glUseProgram(computeProgramId);
-    glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_HALF_SIZE, _numItems);
+    glUniform1ui(UNIFORM_LOCATION_INTERMEDIATE_BUFFER_MAX_ENTRIES, _numItems);
     glUseProgram(0);
 }
 

@@ -31,27 +31,15 @@ Creator:    John Cox, 3/2017
 ------------------------------------------------------------------------------------------------*/
 void main()
 {
-    // Note: Thread count should be the size of the PrefixScanBuffer::PrefixSumsWithinGroup 
-    // array.  
+    // Note: Thread count should be the size of the PrefixScanBuffer::AllPrefixSums array.  
     uint threadIndex = gl_GlobalInvocationID.x;
 
-    // remember that, during prefix scan, each thread works on 2 items, so the number of data 
-    // entries that were scanned per work group is twice the size of a work group, but this 
-    // shader deals with one entry per thread, so divide work group ID in half to get the right 
-    // prefix sum
-    uint prefixSumOfOnes = 
-        //PrefixSumsByGroup[gl_WorkGroupID.x / 2] + 
-        PrefixSumsWithinGroup[threadIndex];
-
     // there are only 0s and 1s, so if they weren't counted in the sum, then they are 0s
-    // Note: I could have used uIntermediateBufferHalfSize instead of uPrefixSumsWithinGroupSize 
-    // because they must be identical for the index calculations to line up when determining 
-    // which prefix sum is meant for which IntermediateData structure, but I did it this way to 
-    // try to keep the terminology straight.
+    uint prefixSumOfOnes = AllPrefixSums[threadIndex];
     uint prefixSumOfZeros = threadIndex - prefixSumOfOnes;
-    uint totalNumberOfZeros = uPrefixSumsWithinGroupSize - totalNumberOfOnes;
+    uint totalNumberOfZeros = uPrefixSumsMaxEntries - totalNumberOfOnes;
 
-    // this values determines if the value should go with the 0s or with 1s on this sort step
+    // determines if the value should go with the 0s or with 1s
     uint intermediateDataReadIndex = threadIndex + uIntermediateBufferReadOffset;
     uint bitVal = (IntermediateDataBuffer[intermediateDataReadIndex]._data >> uBitNumber) & 1;
 

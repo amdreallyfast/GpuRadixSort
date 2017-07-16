@@ -9,7 +9,15 @@ layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
 layout(location = UNIFORM_LOCATION_BIT_NUMBER) uniform uint uBitNumber;
 shared uint[ITEMS_PER_WORK_GROUP] fastTempArr;
 
-// TODO: header
+
+/*------------------------------------------------------------------------------------------------
+Description:
+    This is stage 1 of the prefix scan: Middle of tree-like-traversal (finsh going up; start 
+    going down).
+Parameters: None
+Returns:    None
+Creator:    John Cox, 7/2017
+------------------------------------------------------------------------------------------------*/
 void main()
 {
     // reproduce the end of the "up the tree" loop for a starting position
@@ -25,12 +33,12 @@ void main()
     // messing up the sum
     uint doubleLocalIndex = gl_LocalInvocationID.x * 2;
     uint lesserSourceIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 1)) - 1;
-    bool lesserSourceIndexValidRange = lesserSourceIndex < uPrefixSumsWithinGroupSize;
-    fastTempArr[doubleLocalIndex] = lesserSourceIndexValidRange ? PrefixSumsWithinGroup[lesserSourceIndex] : 0;
+    bool lesserSourceIndexValidRange = lesserSourceIndex < uPrefixSumsMaxEntries;
+    fastTempArr[doubleLocalIndex] = lesserSourceIndexValidRange ? AllPrefixSums[lesserSourceIndex] : 0;
 
     uint greaterSourceIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 2)) - 1;
-    bool greaterSourceIndexValidRange = greaterSourceIndex < uPrefixSumsWithinGroupSize;
-    fastTempArr[doubleLocalIndex + 1] = greaterSourceIndexValidRange ? PrefixSumsWithinGroup[greaterSourceIndex] : 0;
+    bool greaterSourceIndexValidRange = greaterSourceIndex < uPrefixSumsMaxEntries;
+    fastTempArr[doubleLocalIndex + 1] = greaterSourceIndexValidRange ? AllPrefixSums[greaterSourceIndex] : 0;
 
     // keep going up
     uint localIndex = gl_LocalInvocationID.x;
@@ -75,10 +83,10 @@ void main()
 
     if (lesserSourceIndexValidRange)
     {
-        PrefixSumsWithinGroup[lesserSourceIndex] = fastTempArr[doubleLocalIndex];
+        AllPrefixSums[lesserSourceIndex] = fastTempArr[doubleLocalIndex];
     }
     if (greaterSourceIndexValidRange)
     {
-        PrefixSumsWithinGroup[greaterSourceIndex] = fastTempArr[doubleLocalIndex + 1];
+        AllPrefixSums[greaterSourceIndex] = fastTempArr[doubleLocalIndex + 1];
     }
 }

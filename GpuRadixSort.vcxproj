@@ -181,10 +181,8 @@
     <None Include="Shaders\FreeType.frag" />
     <None Include="Shaders\FreeType.vert" />
     <None Include="Shaders\OriginalDataBuffer.comp" />
-    <None Include="Shaders\ParallelSort\GetBitForPrefixScan.comp" />
     <None Include="Shaders\ParallelSort\IntermediateSortBuffers.comp" />
     <None Include="Shaders\ParallelSort\OriginalDataToIntermediateData.comp" />
-    <None Include="Shaders\ParallelSort\ParallelPrefixScan.comp" />
     <None Include="Shaders\ParallelSort\ParallelPrefixScan1.comp" />
     <None Include="Shaders\ParallelSort\ParallelPrefixScan2.comp" />
     <None Include="Shaders\ParallelSort\ParallelPrefixScan3.comp" />

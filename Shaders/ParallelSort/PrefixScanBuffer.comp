@@ -6,35 +6,22 @@
 
 // Note: The ParallelSort compute controller should be carefully controlling the number of work 
 // groups and therefore the number of threads, so this value shouldn't actually be neccesary for 
-// excess thread checks (if gl_GlobalInvocationID.x > uPrefixSumsWithinGroupSize) { return; }),
+// excess thread checks (if gl_GlobalInvocationID.x > uPrefixSumsMaxEntries) { return; }),
 // but it is good practice to have a uniform buffer size wherever there is buffer.
-layout(location = UNIFORM_LOCATION_ALL_PREFIX_SUMS_SIZE) uniform uint uPrefixSumsWithinGroupSize;
+layout(location = UNIFORM_LOCATION_ALL_PREFIX_SUMS_MAX_ENTRIES) uniform uint uPrefixSumsMaxEntries;
 
 /*------------------------------------------------------------------------------------------------
 Description:
-    This is the data that is being scanned AND that is being altered into a prefix sum.
+    Will be filled with 0s and 1s (bit values extracted from the numbers being sorted).
     See explanation of sizes in PrefixSumSsbo.
 
-    Note: The totalNumberOfOnes value between the buffers is set during in the middle of the 
-    prefix scan algorithm of the PrefixSumsByGroup array in the same manner that entries in 
-    PrefixSumsByGroup are set in the middle of each work group's prefix scan of 
-    PrefixSumsWithinGroup.  It is used along with uPrefixSumsWithinGroupSize in 
-    SortIntermediateData.comp to determine the total number of 0s and thus the 1s' offset.
-
-    Prefix sum of 0s = index into PrefixSumsWithinGroup - value at that index (sum of 1s)
-
-    Why is there a "number of 1s" variable being used to determine the number of 0s?  Because 
-    (1) The 1s go after the 0s, so the index for the 1s requires knowing how many 0s came before.
-    (2) You can sum all the 0s in the world and you will still get 0.  Sure, it is possible 
-    to count the number of 0s, but then you'll have to use a counting algorithm, not a sum 
-    algorithm.
-
-Creator:    John Cox, 3/11/2017
+    Note: The totalNumberOfOnes is used along with uPrefixSumsMaxEntries in 
+    SortIntermediateData.comp to determine the offset for the 1s'.
+Creator:    John Cox, 7/2017
 ------------------------------------------------------------------------------------------------*/
 layout (std430, binding = PREFIX_SCAN_BUFFER_BINDING) buffer PrefixScanBuffer
 {
-    uint PrefixSumsByGroup[ITEMS_PER_WORK_GROUP];
     uint totalNumberOfOnes;
-    uint PrefixSumsWithinGroup[];
+    uint AllPrefixSums[];
 };
 
