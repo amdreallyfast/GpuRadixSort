@@ -9,51 +9,28 @@ layout (local_size_x = PARALLEL_SORT_WORK_GROUP_SIZE_X) in;
 layout(location = UNIFORM_LOCATION_BIT_NUMBER) uniform uint uBitNumber;
 shared uint[ITEMS_PER_WORK_GROUP] fastTempArr;
 
+// TODO: header
 void main()
 {
     // reproduce the end of the "up the tree" loop for a starting position
-    //uint startingDataPairs = ITEMS_PER_WORK_GROUP >> 1;
-    //uint dataPairs = uPrefixSumsWithinGroupSize >> 1;
-    //uint indexMultiplierDueToDepth = 1;
-    //while (startingDataPairs > 0)
-    //{
-    //    startingDataPairs >>= 1;            // divide by 2
-    //    dataPairs >>= 1;                    // divide by 2
-    //    indexMultiplierDueToDepth <<= 1;    // multiply by 2
-    //}
-    ////indexMultiplierDueToDepth >>= 1;
-
-    uint numWorkGroupsToSum = uPrefixSumsWithinGroupSize / ITEMS_PER_WORK_GROUP;
-    uint startingDataPairs = numWorkGroupsToSum >> 1;
-    if (numWorkGroupsToSum % 2 == 1)
-    {
-        // each thread must handle 2 items, so an odd work group count must be counted as even
-        startingDataPairs++;
-    }
-
+    // Note: This index multiplier may cause threads to try to access indices beyond the size of 
+    // the data set.
     uint indexMultiplierDueToDepth = 1;
     for (uint dataPairs = ITEMS_PER_WORK_GROUP >> 1; dataPairs > 0; dataPairs >>= 1)
     {
         indexMultiplierDueToDepth <<= 1;
     }
 
+    // if no work group sum from stage 1 exists for the "source index", put in a 0 to avoid 
+    // messing up the sum
     uint doubleLocalIndex = gl_LocalInvocationID.x * 2;
     uint lesserSourceIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 1)) - 1;
-    uint greaterSourceIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 2)) - 1;
-
     bool lesserSourceIndexValidRange = lesserSourceIndex < uPrefixSumsWithinGroupSize;
-    bool greaterSourceIndexValidRange = greaterSourceIndex < uPrefixSumsWithinGroupSize;
-    //if (!lesserSourceIndexValidRange && !greaterSourceIndexValidRange)
-    //{
-    //    // nothing for this thread to contribute
-    //    return;
-    //}
-
-//    // if the thread got here, the lesser index will be in range, but the greater might not
-//    // Ex: Prefix sums buffer holds 3072 items (1024 per work group).  Stage 1 summed each work group's values into indices 1023, 2047, and 3071.  That's 3 sums for this stage to work with.  Each thread handles 2 items, so thread #0 will have 2 items to work with, thread #1 will have 1 (the lesser index 3071), and the other threads will drop out.
     fastTempArr[doubleLocalIndex] = lesserSourceIndexValidRange ? PrefixSumsWithinGroup[lesserSourceIndex] : 0;
+
+    uint greaterSourceIndex = (indexMultiplierDueToDepth * (doubleLocalIndex + 2)) - 1;
+    bool greaterSourceIndexValidRange = greaterSourceIndex < uPrefixSumsWithinGroupSize;
     fastTempArr[doubleLocalIndex + 1] = greaterSourceIndexValidRange ? PrefixSumsWithinGroup[greaterSourceIndex] : 0;
-    barrier();
 
     // keep going up
     uint localIndex = gl_LocalInvocationID.x;
@@ -68,7 +45,7 @@ void main()
 
             fastTempArr[greaterIndex] += fastTempArr[lesserIndex];
         }
-        indexMultiplierDueToDepth <<= 1;    // *= 2
+        indexMultiplierDueToDepth <<= 1;    // multiply by 2
     }
 
     if (doubleLocalIndex == 0)
@@ -103,12 +80,4 @@ void main()
     {
         PrefixSumsWithinGroup[greaterSourceIndex] = fastTempArr[doubleLocalIndex + 1];
     }
-//    PrefixSumsWithinGroup[doubleLocalIndex] = fastTempArr[doubleLocalIndex];
-//    PrefixSumsWithinGroup[doubleLocalIndex + 1] = fastTempArr[doubleLocalIndex + 1];
-    
-
-//    PrefixSumsWithinGroup[gl_GlobalInvocationID.x * 2] = lesserSourceIndex;
-//    PrefixSumsWithinGroup[(gl_GlobalInvocationID.x * 2) + 1] = greaterSourceIndex;
-//    PrefixSumsWithinGroup[lesserSourceIndex] = lesserSourceIndex;
-//    PrefixSumsWithinGroup[greaterSourceIndex] = greaterSourceIndex;
 }

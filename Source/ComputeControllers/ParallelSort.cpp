@@ -322,11 +322,14 @@ void ParallelSort::Sort()
         memcpy(checkPrefixSum.data(), bufferPtr, bufferSizeBytes);
         glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-        //unsigned int count = 0;
-        //for (size_t i = 0; i < checkPrefixSum.size(); i++)
-        //{
-        //    count += checkPrefixSum[i];
-        //}
+        unsigned int count = 0;
+        for (size_t i = 1; i < checkPrefixSum.size(); i++)
+        {
+            if (checkPrefixSum[i - 1] > checkPrefixSum[i])
+            {
+                printf("");
+            }
+        }
 
 
         printf("");

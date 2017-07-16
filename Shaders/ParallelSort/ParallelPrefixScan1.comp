@@ -10,13 +10,31 @@ Description:
     they had pictures that I could eventually work out).
     http://http.developer.nvidia.com/GPUGems3/gpugems3_ch39.html
 
-    In a previous version of this prefix scan, individual work groups performed their sums, and then another prefix scan was run on those sums.  This was necessary because the number of items being sorted was greater than what a single work group could handle, and the varrier() command only works within a work group.
-
-    In this version of the prefix scan, there are three stages:
-    - Get bit for each item, then perform the prefix sum up the tree for each work group.
-    - Sum the results of each work group to a total sum at the top of the tree, then sum back down.
-    - Complete the traversal down the tree to the leaf nodes.
-Creator:    John Cox, 3/11/2017
+    In this algorithm, each thread works on 2 items ("data pairs"), and these pairs are summed 
+    together in a binary-tree-like traversal of the array until there is a total sum at the 
+    top (last index in the array, but if the summation pattern is drawn, it looks like a tree, 
+    which has a "root" or "top"; either term works).  
+    
+    There is no prefix sum in each entry in the array at this point, but all the values that 
+    summed to it are present.  Then the total sum is replaced with a 0 and swap-and-sum is 
+    performed on the way back down the same binary-tree-like traversal.  I don't have an 
+    intuitive explanation, but it works, and if drawn out, it kind of makes sense visually.
+    
+    Thread synchronization is vital to this algorithm.  Threads must synchronize so that the 
+    sums of each threads' data pairs will be visible to other threads.  This means that this 
+    algorithm is only useful for a thread group small enough to synchronize threads.  As 
+    powerful as GPUs are, they are unable to synchronize all threads across the entire shader 
+    dispatch (if they could, then this prefix sum would be much easier).  
+    
+    On my laptop running a GTX 560M, OpenGL reports that it can have a maximum work group size 
+    of ~65,000 threads.  Each thread sums 2 items, so max data size is ~130,000.  That's not 
+    bad, but I want to be able to run this prefix scan over 200,000 items, or even 1,000,000.  
+    
+    Solution: Split the prefix sum into three stages:
+    - Bottom of tree-like-traversal (going up)
+    - Middle of tree-like-traversal (finsh going up; start going down)
+    - Bottom of tree-like-traversal (finish going down)
+Creator:    John Cox, 7/2017
 ------------------------------------------------------------------------------------------------*/
 
 // REQUIRES Version.comp
@@ -40,6 +58,7 @@ void main()
     if (bitReadIndex >= uIntermediateBufferHalfSize ||
        (bitReadIndex + 1) >= uIntermediateBufferHalfSize)
     {
+        // if the work group count is correct in the shader dispatch, this shouldn't happen
         return;
     }
     
